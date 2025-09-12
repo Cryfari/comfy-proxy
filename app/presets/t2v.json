@@ -1,0 +1,340 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 580290097623979,
+      "steps": 20,
+      "cfg": 6,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "37",
+        0
+      ],
+      "positive": [
+        "72",
+        0
+      ],
+      "negative": [
+        "72",
+        1
+      ],
+      "latent_image": [
+        "72",
+        2
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "A young man jogging barefoot on the beach at sunrise, the camera following him from the side with a wide-angle shot, sand scattering under his feet, gentle waves rolling in the background, cinematic lighting, natural colors, realistic movement, high detail, 8K ultra realism",
+      "clip": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "Vibrant colors, overexposure, static, blurred details, subtitles, style, artwork, painting, still image, overall grayness, worst quality, low quality, JPEG compression residue, ugly, mutilated, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, malformed limbs, fused fingers, still image, cluttered background, three legs, crowded background, walking backwards",
+      "clip": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "37": {
+    "inputs": {
+      "unet_name": "wan2.1_i2v_720p_14B_fp16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "38": {
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "39": {
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "56": {
+    "inputs": {
+      "image": "1757318459.369934-Richtig barfuß laufen lernen, schneller werden.jpeg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "57": {
+    "inputs": {
+      "fps": 24,
+      "images": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Create Video"
+    }
+  },
+  "58": {
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "mp4",
+      "codec": "h264",
+      "video-preview": "",
+      "video": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save Video"
+    }
+  },
+  "66": {
+    "inputs": {
+      "model_name": "4x-ESRGAN.safetensors"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "72": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "length": 53,
+      "batch_size": 1,
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "vae": [
+        "39",
+        0
+      ],
+      "clip_vision_output": [
+        "74",
+        0
+      ],
+      "start_image": [
+        "56",
+        0
+      ]
+    },
+    "class_type": "WanImageToVideo",
+    "_meta": {
+      "title": "WanImageToVideo"
+    }
+  },
+  "73": {
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": {
+      "title": "Load CLIP Vision"
+    }
+  },
+  "74": {
+    "inputs": {
+      "crop": "none",
+      "clip_vision": [
+        "73",
+        0
+      ],
+      "image": [
+        "56",
+        0
+      ]
+    },
+    "class_type": "CLIPVisionEncode",
+    "_meta": {
+      "title": "CLIP Vision Encode"
+    }
+  },
+  "75": {
+    "inputs": {
+      "upscale_model": [
+        "66",
+        0
+      ],
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale Image (dyn)"
+    }
+  },
+  "76": {
+    "inputs": {
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "DF_Get_image_size",
+    "_meta": {
+      "title": "Get image size (dyn)"
+    }
+  },
+  "77": {
+    "inputs": {
+      "int": 2
+    },
+    "class_type": "Int Literal",
+    "_meta": {
+      "title": "Upscale Factor (dyn)"
+    }
+  },
+  "78": {
+    "inputs": {
+      "a": [
+        "76",
+        0
+      ],
+      "b": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "JWIntegerMul",
+    "_meta": {
+      "title": "Width Multiplier (dyn)"
+    }
+  },
+  "79": {
+    "inputs": {
+      "a": [
+        "76",
+        1
+      ],
+      "b": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "JWIntegerMul",
+    "_meta": {
+      "title": "Height Multiplier (dyn)"
+    }
+  },
+  "80": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": [
+        "78",
+        0
+      ],
+      "height": [
+        "79",
+        0
+      ],
+      "crop": "disabled",
+      "image": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Upscale Image (to target) (dyn)"
+    }
+  },
+  "81": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": [
+        "78",
+        0
+      ],
+      "height": [
+        "79",
+        0
+      ],
+      "crop": "disabled",
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Base Image (to target) (dyn)"
+    }
+  },
+  "82": {
+    "inputs": {
+      "blend_type": "mix",
+      "factor": 0.9000000000000001,
+      "image_a": [
+        "80",
+        0
+      ],
+      "image_b": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "JWImageMix",
+    "_meta": {
+      "title": "Image Mix (dyn)"
+    }
+  }
+}
