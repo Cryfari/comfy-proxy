@@ -4,6 +4,7 @@ import uuid
 from fastapi import FastAPI, UploadFile, File, HTTPException, Response, WebSocket, WebSocketDisconnect, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from typing import Literal
 from pathlib import Path
@@ -22,7 +23,6 @@ from .config import comfy_ws_url
 from .utils import save_json_atomic, now_jkt_iso
 import os
 
-from app.routers import framepack
 
 app = FastAPI(title="ComfyUI Proxy")
 
@@ -33,6 +33,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class GenerateParams:
+    width: int = 512
+    height: int = 512
+    steps: int = 20
+    cfg_scale: float = 7.0
+    sampler_name: str = "Euler a"
+
+class generateRequest:
+    preset: str
+    params: dict = GenerateParams
 
 async def _pump_client_to_upstream(client_ws: WebSocket, upstream_ws: websockets.WebSocketClientProtocol):
     try:
@@ -270,10 +281,10 @@ async def generate(req: GenerateRequest):
     CLIENT_ID = "comfy-proxy"
 
     prompt_id = str(uuid.uuid4())
-    r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
+    # r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
 
-    resp = r.json()
-    prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
+    # resp = r.json()
+    # prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
     want_save = SAVE_WORKFLOW or bool(req.params.get("save_workflow", False))
     if want_save:
         day = now_jkt_iso()[:10]  # YYYY-MM-DD
@@ -296,6 +307,11 @@ async def generate(req: GenerateRequest):
 
     return {"prompt_id": prompt_id, "saved_workflow": path}
     return resp
+
+@app.get("/history")
+async def history():
+    r = await comfy_client.comfy_get("/history")
+    return r.json()
 
 @app.get("/history/{prompt_id}")
 async def history(prompt_id: str):
@@ -323,4 +339,13 @@ async def all_generated():
     r = await comfy_client.comfy_get("/all_generated")
     return r.json
 
-app.include_router(framepack.router)
+
+@app.get("/models")
+async def models():
+    r = await comfy_client.comfy_get("/models")
+    return r.json()
+
+@app.get("/models/{folder}")
+async def models_in_folder(folder: str):
+    r = await comfy_client.comfy_get(f"/models/{folder}")
+    return r.json()
