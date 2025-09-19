@@ -1,0 +1,60 @@
+{
+  "1": {
+    "inputs": {
+      "image": "figurine.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "2": {
+    "inputs": {
+      "prompt": "The figurine is in the crystal ball",
+      "width": 1024,
+      "height": 1024,
+      "guidance": 4,
+      "num_steps": 25,
+      "seed": 1731,
+      "pe": "d",
+      "uno_model": [
+        "3",
+        0
+      ],
+      "reference_image_1": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "UNOGenerate",
+    "_meta": {
+      "title": "UNO Generate"
+    }
+  },
+  "3": {
+    "inputs": {
+      "flux_model": "flux1-schnell-fp8.safetensors",
+      "ae_model": "ae.safetensors",
+      "use_fp8": "flux-dev",
+      "offload": true,
+      "lora_model": "dit_lora.safetensors"
+    },
+    "class_type": "UNOModelLoader",
+    "_meta": {
+      "title": "UNO Model Loader"
+    }
+  },
+  "5": {
+    "inputs": {
+      "filename_prefix": "image/uno",
+      "images": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 {
   "1": {
     "inputs": {
-      "filename_prefix": "ComfyUI",
+      "filename_prefix": "image/face_swap",
       "images": [
         "4",
         0
@@ -43,8 +43,8 @@
       "face_restore_model": "none",
       "face_restore_visibility": 1,
       "codeformer_weight": 0.5,
-      "detect_gender_input": "male",
-      "detect_gender_source": "male",
+      "detect_gender_input": "no",
+      "detect_gender_source": "no",
       "input_faces_index": "0",
       "source_faces_index": "0",
       "console_log_level": 1,

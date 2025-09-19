@@ -131,7 +131,7 @@
   },
   "59": {
     "inputs": {
-      "filename_prefix": "audio/ComfyUI",
+      "filename_prefix": "audio/t2a",
       "quality": "V0",
       "audioUI": "",
       "audio": [

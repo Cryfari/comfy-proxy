@@ -30,7 +30,7 @@
   },
   "9": {
     "inputs": {
-      "filename_prefix": "ComfyUI",
+      "filename_prefix": "image/t2i",
       "images": [
         "8",
         0
