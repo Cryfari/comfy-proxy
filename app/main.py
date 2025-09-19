@@ -319,28 +319,8 @@ async def generate(req: GenerateRequest):
 
     resp = r.json()
     prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
-    want_save = SAVE_WORKFLOW or bool(req.params.get("save_workflow", False))
-    if want_save:
-        day = now_jkt_iso()[:10]  # YYYY-MM-DD
-        path = os.path.join(RUNS_DIR, day, f"{req.preset}-{prompt_id}.workflow.json")
-        record = {
-            "meta": {
-                "preset": req.preset,
-                "timestamp": now_jkt_iso(),
-                "client_id": CLIENT_ID,
-                "comfy_url": COMFY_URL,
-                "prompt_id": prompt_id,
-                "version": 1
-            },
-            "params": req.params,   # simpan payload params untuk audit/repro
-            "workflow": wf          # exactly what we sent to /prompt
-        }
-        save_json_atomic(path, record)
-        # Tampilkan path di respons (biar FE bisa download/lihat)
-        # resp["workflow_path"] = path
 
-    return {"prompt_id": prompt_id, "saved_workflow": path}
-    return resp
+    return {"prompt_id": prompt_id}
 
 @app.get("/history")
 async def history():

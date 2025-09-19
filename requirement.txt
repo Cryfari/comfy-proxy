@@ -4,10 +4,3 @@ httpx
 python-multipart
 pydantic
 websockets==12.*
-einops
-numpy
-torch
-pillow
-diffusers
-cv2
-transformers
