@@ -13,6 +13,7 @@
       --text:#1d232f;
       --brand:#2f6df6;
       --brand-2:#5ea2ff;
+      --danger: #f44336;
       --radius:14px;
       --shadow:0 1px 2px rgba(14,18,22,.08), 0 8px 24px rgba(14,18,22,.08);
       --shadow-soft:0 1px 2px rgba(14,18,22,.04), 0 4px 12px rgba(14,18,22,.06);
@@ -33,6 +34,7 @@
       --line: #343842;
       --muted: #7b829b;
       --text: #e3e6f0;
+      --danger: #e57373;
       --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.1);
       --shadow-soft: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08);
       --input-bg: #232730;
@@ -128,6 +130,7 @@
     .btn svg{width:16px;height:16px}
     .btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2)); color:#fff; box-shadow:var(--shadow)}
     .btn.primary:active{transform:translateY(1px)}
+    .btn.danger { background: var(--danger); color: #fff; }
 
     /* ===== Controls panel ===== */
     .panel{padding:14px; display:flex; flex-direction:column; gap:14px}
@@ -284,6 +287,14 @@
 <path d="M14.5 9.50004C14.5 9.50004 11.1858 14 9.99994 14C8.81414 14 5.5 9.50004 5.5 9.50004M9.99994 13V1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M1 15.0001C1 15.9301 1 16.3951 1.10223 16.7766C1.37963 17.8118 2.18827 18.6205 3.22355 18.8979C3.60505 19.0001 4.07003 19.0001 5 19.0001H15C15.93 19.0001 16.395 19.0001 16.7765 18.8979C17.8117 18.6205 18.6204 17.8118 18.8978 16.7766C19 16.3951 19 15.9301 19 15.0001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
+              </button>
+              <!-- Tombol Interrupt ditambahkan di sini -->
+              <button class="btn danger" id="btnInterrupt" title="Interrupt" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                  <path d="M5 5h6v6H5V5z"/>
+                </svg>
+                Interrupt
               </button>
               <button class="btn primary" id="btnGenerate">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
@@ -534,6 +545,7 @@
   </div>
 <script>
   let uploadedImageB64 = null; // Variabel untuk menyimpan gambar Base64
+  let activePollingInterval = null; // Variabel global untuk interval polling
 
   // ===== Helper: bind range <-> number =====
   function bindRangeNumber(range, number){
@@ -819,149 +831,142 @@
     }
     return { enabled: false };
   }
+  
+  // ===== Interrupt Logic =====
+  const btnInterrupt = document.getElementById('btnInterrupt');
+  btnInterrupt.addEventListener('click', async () => {
+    try {
+        const response = await fetch('http://localhost:8000/interrupt', { method: 'POST' });
+        if (response.ok) {
+            console.log('Interrupt request sent.');
+            alert('Proses generasi dihentikan.');
+            resetGenerateButton(); // This will clear the interval and reset the UI
+            // Reset the preview placeholder
+            const previewPlaceholder = document.querySelector('.preview-viewport .ph');
+            previewPlaceholder.innerHTML = `
+              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_4_2)">
+<path d="M48 8C25.88 8 8 25.88 8 48C8 70.12 25.88 88 48 88C70.12 88 88 70.12 88 48C88 25.88 70.12 8 48 8ZM48 80C30.36 80 16 65.64 16 48C16 30.36 30.36 16 48 16C65.64 16 80 30.36 80 48C80 65.64 65.64 80 48 80ZM62.36 28L48 42.36L33.64 28L28 33.64L42.36 48L28 62.36L33.64 68L48 53.64L62.36 68L68 62.36L53.64 48L68 33.64L62.36 28Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_4_2">
+<rect width="96" height="96" fill="white"/>
+</clipPath>
+</defs>
+</svg>
+
+              <div>Proses Dibatalkan</div>`;
+            previewPlaceholder.style.display = 'block';
+            document.getElementById('preview').style.display = 'none';
+        } else {
+            alert('Gagal mengirim perintah interupsi.');
+        }
+    } catch (error) {
+        console.error('Interrupt request failed:', error);
+        alert('Gagal menghubungi server untuk interupsi.');
+    }
+  });
+
 
   // ===== Polling and Result Handling =====
   function resetGenerateButton() {
+    if (activePollingInterval) {
+        clearInterval(activePollingInterval);
+        activePollingInterval = null;
+    }
     const btn = document.getElementById('btnGenerate');
+    const btnInterrupt = document.getElementById('btnInterrupt');
     btn.disabled = false;
     btn.innerHTML = `
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
       Generate image
     `;
+    btnInterrupt.style.display = 'none';
   }
   
   function pollForResult(promptId) {
-      const btn = document.getElementById('btnGenerate');
-      const previewPlaceholder = document.querySelector('.preview-viewport .ph');
-      const previewImg = document.getElementById('preview');
+    const btn = document.getElementById('btnGenerate');
+    const btnInterrupt = document.getElementById('btnInterrupt');
+    const previewPlaceholder = document.querySelector('.preview-viewport .ph');
+    const previewImg = document.getElementById('preview');
 
-      btn.innerHTML = 'Generating... (checking status)';
-      previewPlaceholder.innerHTML = `<div style="word-break: break-all;">Processing prompt ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
-      previewPlaceholder.style.display = 'block';
-      previewImg.style.display = 'none';
+    btn.innerHTML = 'Generating...';
+    btnInterrupt.style.display = 'inline-flex';
+    previewPlaceholder.innerHTML = `<div style="word-break: break-all;">Processing prompt ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
+    previewPlaceholder.style.display = 'block';
+    previewImg.style.display = 'none';
 
-      const maxAttempts = 120; // Try for 2 minutes (120 * 1s)
-      let attempt = 0;
+    const maxAttempts = 120;
+    let attempt = 0;
 
-      const checkStatus = async () => {
-          if (attempt++ >= maxAttempts) {
-              alert('Generation timed out. Please check the server console.');
-              resetGenerateButton();
-              previewPlaceholder.innerHTML = `"euler",
-"euler_cfg_pp",
-"euler_ancestral",
-"euler_ancestral_cfg_pp",
-"heun",
-"heunpp2",
-"dpm_2",
-"dpm_2_ancestral",
-"lms",
-"dpm_fast",
-"dpm_adaptive",
-"dpmpp_2s_ancestral",
-"dpmpp_2s_ancestral_cfg_pp",
-"dpmpp_sde",
-"dpmpp_sde_gpu",
-"dpmpp_2m",
-"dpmpp_2m_cfg_pp",
-"dpmpp_2m_sde",
-"dpmpp_2m_sde_gpu",
-"dpmpp_3m_sde",
-"dpmpp_3m_sde_gpu",
-"ddpm",
-"lcm",
-"ipndm",
-"ipndm_v",
-"deis",
-"res_multistep",
-"res_multistep_cfg_pp",
-"res_multistep_ancestral",
-"res_multistep_ancestral_cfg_pp",
-"gradient_estimation",
-"gradient_estimation_cfg_pp",
-"er_sde",
-"seeds_2",
-"seeds_3",
-"sa_solver",
-"sa_solver_pece",
-"ddim",
-"uni_pc",
-"uni_pc_bh2"
+    if (activePollingInterval) {
+        clearInterval(activePollingInterval);
+    }
 
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg>
-                  <div>Timeout</div>
-                  <div class="muted">Gagal mengambil hasil</div>`;
-              return;
-          }
+    activePollingInterval = setInterval(async () => {
+        if (attempt++ >= maxAttempts) {
+            clearInterval(activePollingInterval);
+            activePollingInterval = null;
+            alert('Generation timed out.');
+            resetGenerateButton();
+            previewPlaceholder.innerHTML = `<div>Timeout</div>`;
+            return;
+        }
 
-          try {
-              const response = await fetch(`http://localhost:8000/history/${promptId}`);
-              const history = await response.json();
+        try {
+            const response = await fetch(`http://localhost:8000/history/${promptId}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const history = await response.json();
 
-              if (Object.keys(history).length === 0) {
-                  console.log(`[Attempt ${attempt}/${maxAttempts}] Still processing...`);
-                  setTimeout(checkStatus, 1000); // Check again in 1 second
-                  return;
-              }
+            if (Object.keys(history).length > 0) {
+                clearInterval(activePollingInterval);
+                activePollingInterval = null;
+                console.log("Generation complete:", history);
+                
+                const promptData = history[promptId];
+                let outputImage = null;
+                if (promptData && promptData.outputs) {
+                    for (const nodeId in promptData.outputs) {
+                        const nodeOutput = promptData.outputs[nodeId];
+                        if (nodeOutput.images && nodeOutput.images.length > 0) {
+                            outputImage = nodeOutput.images[0];
+                            break;
+                        }
+                    }
+                }
 
-              // Success! Job is done.
-              console.log("Generation complete, received history:", history);
-              resetGenerateButton();
-              
-              const promptData = history[promptId];
-              if (promptData && promptData.outputs) {
-                  let outputImage = null;
-                  for (const nodeId in promptData.outputs) {
-                      const nodeOutput = promptData.outputs[nodeId];
-                      if (nodeOutput.images && nodeOutput.images.length > 0) {
-                          outputImage = nodeOutput.images[0];
-                          console.log(`Found image in output node ${nodeId}:`, outputImage);
-                          break;
-                      }
-                  }
+                if (outputImage && outputImage.filename) {
+                    const { filename, subfolder } = outputImage;
+                    const imageUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
+                    
+                    previewImg.onload = () => {
+                        previewPlaceholder.style.display = 'none';
+                        previewImg.style.display = 'block';
+                    };
+                    previewImg.onerror = () => {
+                        alert(`Failed to load image from ${imageUrl}.`);
+                    };
+                    previewImg.src = imageUrl;
 
-                  if (outputImage && outputImage.filename) {
-                      const { filename, subfolder } = outputImage;
-                      const imageUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
-                      
-                      console.log(`Displaying image from URL: ${imageUrl}`);
-                      
-                      setTimeout(() => {
-                        previewImg.onload = () => {
-                            previewPlaceholder.style.display = 'none';
-                            previewImg.style.display = 'block';
-                        };
-                        previewImg.onerror = () => {
-                            alert(`Failed to load the generated image from ${imageUrl}. Check server logs.`);
-                            previewPlaceholder.innerHTML = `<div>Failed to load image.</div>`;
-                        };
-                        previewImg.src = imageUrl;
-                      }, 500);
-
-                      const btnDownload = document.getElementById('btnDownload');
-                      btnDownload.disabled = false;
-                      btnDownload.onclick = () => {
-                          const a = document.createElement('a');
-                          a.href = imageUrl;
-                          a.download = filename;
-                          a.click();
-                      };
-                  } else {
-                      alert('Generation finished, but no image output was found in the result data.');
-                      console.error("No image output found in history:", promptData.outputs);
-                  }
-              } else {
-                  alert('Generation finished, but the result format was unexpected.');
-                  console.error("Unexpected history format:", history);
-              }
-          } catch (error) {
-              console.error('Error while polling for result:', error);
-              setTimeout(checkStatus, 1000); // Retry on network error
-          }
-      };
-      
-      checkStatus(); // Start the first check
+                    const btnDownload = document.getElementById('btnDownload');
+                    btnDownload.disabled = false;
+                    btnDownload.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = imageUrl;
+                        a.download = filename;
+                        a.click();
+                    };
+                } else {
+                    alert('Generation finished, but no image output was found.');
+                }
+                resetGenerateButton();
+            }
+        } catch (error) {
+            console.error('Polling error:', error);
+        }
+    }, 1500); // Check every 1.5 seconds
   }
+
 
   // ===== Tombol Generate (Tunggal & Terpusat) =====
   document.getElementById('btnGenerate').addEventListener('click', async () => {
