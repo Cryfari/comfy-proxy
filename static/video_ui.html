@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADIGIT AI – AI Video</title>
+  <style>
+    :root{
+      --bg:#f5f6f8;
+      --panel:#ffffff;
+      --line:#e6e8ee;
+      --muted:#8a8f98;
+      --text:#1d232f;
+      --brand:#2f6df6;
+      --brand-2:#5ea2ff;
+      --radius:14px;
+      --shadow:0 1px 2px rgba(14,18,22,.08), 0 8px 24px rgba(14,18,22,.08);
+      --shadow-soft:0 1px 2px rgba(14,18,22,.04), 0 4px 12px rgba(14,18,22,.06);
+      --input-bg: #fff;
+      --btn-bg: #eef1f7;
+      --btn-text: #2a3342;
+      --chip-bg: #fbfcfe;
+      --chip-hover-bg: #f4f8ff;
+      --nav-hover-bg: #f3f6ff;
+      --nav-active-bg: #eaf1ff;
+      --nav-active-text: #123;
+      --nav-active-outline: #d7e5ff;
+      --video-player-bg: #e3e6f0;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #1a1d24;
+      --panel: #232730;
+      --line: #343842;
+      --muted: #7b829b;
+      --text: #e3e6f0;
+      --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.1);
+      --shadow-soft: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08);
+      --input-bg: #232730;
+      --btn-bg: #2c313a;
+      --btn-text: #c5cadd;
+      --chip-bg: #2c313a;
+      --chip-hover-bg: #343842;
+      --nav-hover-bg: #2c313a;
+      --nav-active-bg: #3c69ad;
+      --nav-active-text: #fff;
+      --nav-active-outline: transparent;
+      --video-player-bg: #1f2229;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* ===== Root layout: Topbar + Body ===== */
+    .root{display:grid; grid-template-rows:56px 1fr; height:100vh}
+    .topbar{
+      background:var(--panel); border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 18px;
+    }
+    .topbar .left{display:flex; align-items:center; gap:10px}
+    .topbar .left svg{width:22px;height:22px;color:var(--brand)}
+    .topbar strong{font-size:15px; letter-spacing:.2px}
+    .topbar .right{display:flex; align-items:center; gap:10px;}
+    .topbar .right button{
+      border:none; background:var(--btn-bg); border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--btn-text); font-weight:600;
+    }
+    .topbar .right .icon-btn {
+      width: 42px; height: 42px; padding: 0; display:grid; place-items:center;
+    }
+
+    /* ===== Body: Sidebar + Main ===== */
+    .app{display:grid; grid-template-columns:260px 1fr; height:100%}
+    .sidebar{
+      background:var(--panel); border-right:1px solid var(--line); padding:18px 14px; display:flex; flex-direction:column; gap:14px;
+    }
+    .side-title{color:#687086; font-weight:600; font-size:13px; padding:4px 10px}
+    .nav{display:flex; flex-direction:column; gap:6px}
+    .nav a{
+      all:unset; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--text); text-decoration: none;
+    }
+    .nav a:hover{background:var(--nav-hover-bg)}
+    .nav a.active{background:var(--nav-active-bg); color:var(--nav-active-text); outline:1px solid var(--nav-active-outline)}
+    .nav a svg{width:18px;height:18px;color:#5b6b88}
+    body[data-theme="dark"] .nav a.active svg { color: #fff; }
+
+    .main{padding:20px; overflow:auto}
+    .grid{
+      display:grid;
+      grid-template-columns: minmax(320px, 1fr) 560px;
+      gap:18px;
+    }
+    @media (max-width:1100px){ .grid{grid-template-columns:1fr} }
+    
+    .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-soft)}
+    .panel{padding:14px; display:flex; flex-direction:column; gap:14px}
+    .group{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-soft)}
+    .group .hd{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line)}
+    .group .hd h3{margin:0; font-size:14px}
+    .group .bd{padding:12px 14px; display:flex; flex-direction:column; gap:12px}
+
+    .input, textarea, select{
+      width:100%; border:1px solid var(--line); border-radius:10px; background:var(--input-bg); color:var(--text);
+      padding:10px 12px; outline:none;
+    }
+    .input:focus, textarea:focus, select:focus{border-color:#c8d8ff; box-shadow:0 0 0 3px rgba(47,109,246,.15)}
+    textarea{resize:vertical; min-height:80px}
+
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600;
+      background:var(--btn-bg); color:var(--btn-text);
+    }
+    .btn.primary{background:var(--brand); color:#fff}
+    .icon-btn{
+      width:42px; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--panel); cursor:pointer;
+      display:grid; place-items:center;
+    }
+     .icon-btn:hover{background:var(--nav-hover-bg)}
+    .reset{border:none; background:transparent; color:var(--muted); cursor:pointer; font-weight:600;}
+
+    /* ===== Video Player Styles ===== */
+    .video-player {
+        background-color: var(--video-player-bg);
+        border-radius: var(--radius);
+        aspect-ratio: 16/9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .video-player .placeholder {
+        text-align: center;
+        color: var(--muted);
+    }
+    .video-player .placeholder svg {
+        width: 80px;
+        height: 80px;
+        color: #b4b8c2;
+    }
+    .preview-actions { display: flex; gap: 10px; margin-top: 15px; }
+    .preview-actions .btn { flex-grow: 1; justify-content: center; }
+
+    /* ===== Settings Styles ===== */
+    .row{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+    .row-input { display: flex; align-items:center; border: 1px solid var(--line); border-radius: 10px; }
+    .row-input input { border: none; text-align: right; }
+    .row-input .stepper { display:flex; flex-direction:column; padding: 0 4px; }
+    .row-input .stepper svg { width: 12px; height: 12px; cursor:pointer; color: var(--muted); }
+    .inline{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .muted{color:var(--muted); font-size:12px}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px; border:1px dashed #cfd6e4; padding:10px 12px; border-radius:10px; cursor:pointer;
+      background:var(--chip-bg);
+    }
+    .chip:hover{background:var(--chip-hover-bg)}
+    body[data-theme="dark"] .chip { border-color: #4a505c; }
+    .chip svg{width:16px;height:16px}
+  </style>
+</head>
+<body>
+  <div class="root">
+    <!-- ===== TOPBAR ===== -->
+    <header class="topbar">
+      <div class="left">
+        <svg width="34" height="21" viewBox="0 0 34 21" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" fill="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" fill="#3C69AD"/><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" stroke="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" stroke="#3C69AD"/></svg>
+        <strong>SADIGIT AI</strong>
+      </div>
+      <div class="right">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <!-- Ikon akan diatur oleh JS -->
+            </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== BODY ===== -->
+    <div class="app">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="side-title">General</div>
+        <nav class="nav">
+          <a href="/">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+
+            AI Image
+          </a>
+          <a href="audio">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.5 2.5V17.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 5.83331V14.1666" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 5V15" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.5 7.5V12.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M15 5.83331V14.1666" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M17.5 9.16669V10.8334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M2.5 9.16669V10.8334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            AI Audio
+          </a>
+          <a href="video" class="active">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1.6665 9.16665C1.6665 6.41679 1.6665 5.04185 2.52078 4.18759C3.37505 3.33331 4.74998 3.33331 7.49984 3.33331H8.33317C11.083 3.33331 12.4579 3.33331 13.3123 4.18759C14.1665 5.04185 14.1665 6.41679 14.1665 9.16665V10.8333C14.1665 13.5831 14.1665 14.9581 13.3123 15.8124C12.4579 16.6666 11.083 16.6666 8.33317 16.6666H7.49984C4.74998 16.6666 3.37505 16.6666 2.52078 15.8124C1.6665 14.9581 1.6665 13.5831 1.6665 10.8333V9.16665Z" stroke="white" stroke-width="1.5"/>
+<path d="M14.1665 7.42156L14.2714 7.33499C16.0346 5.88021 16.9162 5.15282 17.6247 5.50404C18.3332 5.85526 18.3332 7.01965 18.3332 9.34844V10.6516C18.3332 12.9804 18.3332 14.1448 17.6247 14.496C16.9162 14.8472 16.0346 14.1199 14.2714 12.665L14.1665 12.5784" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M9.5835 9.16669C10.2739 9.16669 10.8335 8.60704 10.8335 7.91669C10.8335 7.22633 10.2739 6.66669 9.5835 6.66669C8.89314 6.66669 8.3335 7.22633 8.3335 7.91669C8.3335 8.60704 8.89314 9.16669 9.5835 9.16669Z" stroke="white" stroke-width="1.5"/>
+</svg>
+
+            AI Video
+          </a>
+          <a href="faceswap">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.0835 6.82229C2.17021 5.07252 2.42964 3.98158 3.2057 3.20551C3.98176 2.42945 5.0727 2.17003 6.82247 2.08331M17.9168 6.82229C17.8301 5.07252 17.5707 3.98158 16.7947 3.20551C16.0186 2.42945 14.9276 2.17003 13.1778 2.08331M13.1778 17.9166C14.9276 17.8299 16.0186 17.5705 16.7947 16.7945C17.5707 16.0184 17.8301 14.9274 17.9168 13.1776M6.82246 17.9166C5.0727 17.8299 3.98176 17.5705 3.2057 16.7945C2.42964 16.0184 2.17021 14.9274 2.0835 13.1776" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M14.5832 14.1667L14.4147 13.4593C14.2754 12.8748 13.8323 12.4104 13.2549 12.2441L11.2498 11.6662L11.2496 10.4432C11.9968 9.93883 12.4996 8.99625 12.4996 7.91667C12.4996 6.30583 11.3803 5 9.99959 5C8.61884 5 7.49955 6.30583 7.49955 7.91667C7.49955 8.99625 8.0023 9.93883 8.74959 10.4432L8.74984 11.6662L6.75721 12.2495C6.19773 12.4133 5.76448 12.8575 5.61473 13.4209L5.4165 14.1667" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            face swap
+          </a>
+          <a href="uno">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+            Flux Uno
+          </a>
+          <a href="gallery">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 14.9788C5.10725 16.0691 5.34963 16.803 5.89742 17.3507C6.87997 18.3333 8.46133 18.3333 11.6241 18.3333C14.7868 18.3333 16.3682 18.3333 17.3507 17.3507C18.3333 16.3682 18.3333 14.7868 18.3333 11.6241C18.3333 8.46133 18.3333 6.87997 17.3507 5.89742C16.803 5.34963 16.0691 5.10725 14.9788 5" stroke="white" stroke-width="1.5"/>
+<path d="M1.6665 8.33335C1.6665 5.19065 1.6665 3.61931 2.64281 2.643C3.61913 1.66669 5.19047 1.66669 8.33317 1.66669C11.4758 1.66669 13.0473 1.66669 14.0235 2.643C14.9998 3.61931 14.9998 5.19065 14.9998 8.33335C14.9998 11.476 14.9998 13.0474 14.0235 14.0237C13.0473 15 11.4758 15 8.33317 15C5.19047 15 3.61913 15 2.64281 14.0237C1.6665 13.0474 1.6665 11.476 1.6665 8.33335Z" stroke="white" stroke-width="1.5"/>
+<path d="M1.6665 9.26541C2.18235 9.19982 2.70387 9.16749 3.22626 9.16857C5.43621 9.12774 7.59204 9.73024 9.30909 10.8687C10.9015 11.9245 12.0204 13.3775 12.4998 15" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M10.833 5.83331H10.8405" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            galery
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="grid">
+          <!-- LEFT: Preview -->
+          <section class="card" style="padding: 15px;">
+            <div class="video-player" id="video-player">
+                <div class="placeholder" id="video-placeholder">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    <div class="muted">Hasil video akan tampil di sini</div>
+                </div>
+                <video id="video-preview" controls loop style="width: 100%; height: 100%; object-fit: contain; display: none;"></video>
+            </div>
+            <div class="preview-actions">
+                <button class="btn" id="btnDownload" title="Download" disabled>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M14.5 9.50004C14.5 9.50004 11.1858 14 9.99994 14C8.81414 14 5.5 9.50004 5.5 9.50004M9.99994 13V1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1 15.0001C1 15.9301 1 16.3951 1.10223 16.7766C1.37963 17.8118 2.18827 18.6205 3.22355 18.8979C3.60505 19.0001 4.07003 19.0001 5 19.0001H15C15.93 19.0001 16.395 19.0001 16.7765 18.8979C17.8117 18.6205 18.6204 17.8118 18.8978 16.7766C19 16.3951 19 15.9301 19 15.0001" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+
+                </button>
+                <button class="btn primary" id="btnGenerate">Generate video</button>
+            </div>
+          </section>
+
+          <!-- RIGHT: Controls -->
+          <aside class="panel" style="gap: 20px;">
+            <section class="group">
+              <div class="bd" style="gap: 15px;">
+                <textarea id="prompt-pos" placeholder="prompt Positif"></textarea>
+                <textarea id="prompt-neg" placeholder="prompt Negatif"></textarea>
+                <label class="chip" for="fileInput" id="fileInputLabel">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6.5a4.5 4.5 0 0 1 0 6.36l-6.36 6.36a4.5 4.5 0 1 1-6.36-6.36l3.18-3.18" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 16l8-8a2.5 2.5 0 1 1 3.54 3.54L11.5 19.58"/></svg>
+                  <span>Tambahkan Foto Referensi (i2v)</span>
+                </label>
+                <input id="fileInput" type="file" accept="image/*" hidden />
+                <div id="referencePreviewContainer" style="display:none; margin-top: 12px; position: relative; width: 100px; height: 100px;">
+                    <img id="referencePreviewImage" src="#" alt="Reference" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 1px solid var(--line);" />
+                    <button id="removeReferenceBtn" title="Remove image" style="position: absolute; top: -5px; right: -5px; background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 1;">&times;</button>
+                </div>
+              </div>
+            </section>
+            
+            <section class="group">
+              <div class="hd">
+                <h3>Settings</h3>
+                <button class="reset" id="btnReset">Reset</button>
+              </div>
+              <div class="bd" style="gap: 15px;">
+                <div>
+                  <label class="muted">Width</label>
+                  <div class="row">
+                    <input id="widthRange" type="range" min="1" max="1536" step="32" value="1024" />
+                    <div class="row-input" style="width: 100px;">
+                        <input id="widthNum" type="number" min="1" max="1536" step="32" value="1024" class="input" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="muted">Height</label>
+                   <div class="row">
+                    <input id="heightRange" type="range" min="1" max="1536" step="32" value="1024" />
+                    <div class="row-input" style="width: 100px;">
+                        <input id="heightNum" type="number" min="1" max="1536" step="32" value="1024" class="input" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="muted">Steps</label>
+                  <div class="row">
+                    <input id="stepsRange" type="range" min="1" max="60" step="1" value="22" />
+                    <div class="row-input" style="width: 100px;">
+                        <input id="stepsNum" type="number" min="1" max="60" step="1" value="22" class="input" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="muted">CFG</label>
+                  <div class="row">
+                    <input id="cfgRange" type="range" min="1" max="30" step="1" value="7" />
+                    <div class="row-input" style="width: 100px;">
+                        <input id="cfgNum" type="number" min="1" max="30" step="1" value="7" class="input" />
+                    </div>
+                  </div>
+                </div>
+                <div class="inline">
+                    <div>
+                        <label class="muted">FPS</label>
+                        <input id="fpsNum" type="number" value="60" class="input" />
+                    </div>
+                    <div>
+                        <label class="muted">Seconds</label>
+                        <input id="secondsNum" type="number" value="120" class="input" />
+                    </div>
+                </div>
+                <div>
+                  <label class="muted">Seed</label>
+                  <div class="row">
+                    <input id="seedNum" type="number" class="input" value="1" />
+                    <button class="icon-btn" id="btnRandSeed" title="Acak seed" style="width: 42px;">
+                      <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M19.5576 4.5L20.4551 5.47574C20.8561 5.91165 21.0566 6.12961 20.9861 6.31481C20.9155 6.5 20.632 6.5 20.0649 6.5C18.7956 6.5 17.2771 6.29493 16.1111 6.9733C15.3903 7.39272 14.8883 8.12517 14.0392 9.5M3 18.5H4.58082C6.50873 18.5 7.47269 18.5 8.2862 18.0267C9.00708 17.6073 9.50904 16.8748 10.3582 15.5" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M19.5576 20.5L20.4551 19.5243C20.8561 19.0883 21.0566 18.8704 20.9861 18.6852C20.9155 18.5 20.632 18.5 20.0649 18.5C18.7956 18.5 17.2771 18.7051 16.1111 18.0267C15.2976 17.5534 14.7629 16.6815 13.6935 14.9376L10.7038 10.0624C9.63441 8.31853 9.0997 7.4466 8.2862 6.9733C7.47269 6.5 6.50873 6.5 4.58082 6.5H3" stroke="black" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+                    </button>
+                  </div>
+                </div>
+
+                <!-- ===== Upscaler (Baru ditambahkan) ===== -->
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border-top: 1px solid var(--line); padding-top: 12px;">
+                        <input type="checkbox" id="enableUpscaler" style="width: 16px; height: 16px; margin: 0;">
+                        <label for="enableUpscaler" style="font-weight: 500; cursor: pointer;">Enable Upscaler</label>
+                    </div>
+                    <div id="scaleFactorControls" style="display: none;">
+                      <label class="muted">Scale Factor</label>
+                      <div class="row">
+                        <input id="scaleFactorRange" type="range" min="1" max="4" step="0.1" value="2">
+                        <div class="row-input" style="width: 100px;">
+                            <input id="scaleFactorNum" type="number" min="1" max="4" step="0.1" value="2" class="input">
+                        </div>
+                      </div>
+                    </div>
+                </div>
+
+              </div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+<script>
+    let uploadedImageFilename = null;
+
+    // ===== Helper: bind range <-> number =====
+    function bindRangeNumber(range, number){
+      if (!range || !number) return;
+      const sync = (src, dst) => () => { dst.value = src.value; };
+      range.addEventListener('input', sync(range, number));
+      number.addEventListener('input', sync(number, range));
+    }
+    bindRangeNumber(document.getElementById('widthRange'), document.getElementById('widthNum'));
+    bindRangeNumber(document.getElementById('heightRange'), document.getElementById('heightNum'));
+    bindRangeNumber(document.getElementById('stepsRange'), document.getElementById('stepsNum'));
+    bindRangeNumber(document.getElementById('cfgRange'), document.getElementById('cfgNum'));
+    bindRangeNumber(document.getElementById('scaleFactorRange'), document.getElementById('scaleFactorNum'));
+
+    // ===== Upscaler UI Logic =====
+    const enableUpscaler = document.getElementById('enableUpscaler');
+    const scaleFactorControls = document.getElementById('scaleFactorControls');
+    enableUpscaler.addEventListener('change', () => {
+      scaleFactorControls.style.display = enableUpscaler.checked ? 'block' : 'none';
+    });
+    
+    // ===== File Input & Preview Logic =====
+    const fileInput = document.getElementById('fileInput');
+    const fileInputLabel = document.getElementById('fileInputLabel').querySelector('span');
+    const originalLabelText = fileInputLabel.textContent;
+    const refContainer = document.getElementById('referencePreviewContainer');
+    const refImg = document.getElementById('referencePreviewImage');
+
+    function clearReferenceImage() {
+        uploadedImageFilename = null;
+        fileInput.value = '';
+        refContainer.style.display = 'none';
+        refImg.src = '';
+        fileInputLabel.textContent = originalLabelText;
+    }
+
+    document.getElementById('removeReferenceBtn').addEventListener('click', clearReferenceImage);
+    
+    fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            clearReferenceImage();
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        fileInputLabel.textContent = 'Uploading...';
+
+        try {
+            const response = await fetch('http://localhost:8000/upload/image', {
+                method: 'POST',
+                body: formData,
+            });
+            if (!response.ok) throw new Error('Upload failed');
+            const result = await response.json();
+            
+            uploadedImageFilename = result.name;
+            refImg.src = URL.createObjectURL(file);
+            refContainer.style.display = 'block';
+            fileInputLabel.textContent = file.name;
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Gagal mengunggah gambar referensi.');
+            clearReferenceImage();
+        }
+    });
+
+
+    // Seed random
+    document.getElementById('btnRandSeed').addEventListener('click', () => {
+      document.getElementById('seedNum').value = Math.floor(Math.random()*2147483647);
+    });
+
+    // Reset default
+    document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('prompt-pos').value = '';
+        document.getElementById('prompt-neg').value = '';
+        document.getElementById('widthRange').value = document.getElementById('widthNum').value = 1024;
+        document.getElementById('heightRange').value = document.getElementById('heightNum').value = 1024;
+        document.getElementById('stepsRange').value = document.getElementById('stepsNum').value = 22;
+        document.getElementById('cfgRange').value = document.getElementById('cfgNum').value = 7;
+        document.getElementById('fpsNum').value = 60;
+        document.getElementById('secondsNum').value = 120;
+        document.getElementById('seedNum').value = 1;
+        enableUpscaler.checked = false;
+        scaleFactorControls.style.display = 'none';
+        document.getElementById('scaleFactorRange').value = document.getElementById('scaleFactorNum').value = 2;
+        clearReferenceImage();
+        // Reset preview
+        document.getElementById('video-preview').style.display = 'none';
+        document.getElementById('video-placeholder').style.display = 'flex';
+        document.getElementById('btnDownload').disabled = true;
+    });
+
+    // ===== Data Collection =====
+    function collectUpscale(){
+      const isEnabled = document.getElementById('enableUpscaler').checked;
+      const scale = parseFloat(document.getElementById('scaleFactorNum').value || '2');
+      return {
+          enabled: isEnabled,
+          factor: scale
+      };
+    }
+
+    // ===== Polling and Result Handling =====
+    const btnGenerate = document.getElementById('btnGenerate');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const videoPreview = document.getElementById('video-preview');
+    const btnDownload = document.getElementById('btnDownload');
+    
+    function resetGenerateButton() {
+        btnGenerate.disabled = false;
+        btnGenerate.textContent = 'Generate video';
+    }
+
+    function pollForResult(promptId) {
+        btnGenerate.textContent = 'Processing...';
+        videoPreview.style.display = 'none';
+        videoPlaceholder.style.display = 'flex';
+        videoPlaceholder.innerHTML = `<div class="muted" style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
+        btnDownload.disabled = true;
+
+        const maxAttempts = 60*60*2; // 3 minutes timeout
+        let attempt = 0;
+
+        const intervalId = setInterval(async () => {
+            if (attempt++ >= maxAttempts) {
+                clearInterval(intervalId);
+                alert('Generation timed out.');
+                resetGenerateButton();
+                videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Timeout</div>`;
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8000/history/${promptId}`);
+                const history = await response.json();
+
+                if (Object.keys(history).length > 0) {
+                    clearInterval(intervalId);
+                    const promptData = history[promptId];
+                    let outputVideo = null;
+                    if (promptData && promptData.outputs) {
+                         for (const nodeId in promptData.outputs) {
+                            const nodeOutput = promptData.outputs[nodeId];
+                            if (nodeOutput.images && nodeOutput.images.length > 0) {
+                                outputVideo = nodeOutput.images[0];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (outputVideo && outputVideo.filename) {
+                        const { filename, subfolder } = outputVideo;
+                        const videoUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || 'video')}`;
+                        
+                        videoPreview.src = videoUrl;
+                        videoPreview.style.display = 'block';
+                        videoPlaceholder.style.display = 'none';
+
+                        btnDownload.disabled = false;
+                        btnDownload.onclick = async () => {
+                          try {
+                            const res = await fetch(videoUrl, { mode: 'cors' }); 
+                            if (!res.ok) throw new Error('Gagal mengambil file');
+                            const blob = await res.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = blobUrl;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(blobUrl);
+                          } catch (e) {
+                            alert('Download gagal: ' + e.message);
+                          }
+                        };
+                    } else {
+                        alert('Generation finished, but no video output was found.');
+                    }
+                    resetGenerateButton();
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }, 1000);
+    }
+    
+    // ===== Tombol Generate =====
+    btnGenerate.addEventListener('click', async () => {
+        btnGenerate.disabled = true;
+        btnGenerate.textContent = 'Sending request...';
+
+        try {
+            const commonParams = {
+                prompt: document.getElementById('prompt-pos').value,
+                negative: document.getElementById('prompt-neg').value,
+                width: +document.getElementById('widthNum').value,
+                height: +document.getElementById('heightNum').value,
+                fps: +document.getElementById('fpsNum').value,
+                seconds: +document.getElementById('secondsNum').value,
+                steps: +document.getElementById('stepsNum').value,
+                cfg: +document.getElementById('cfgNum').value,
+                seed: +document.getElementById('seedNum').value,
+                sampler: "uni_pc",
+                scheduler: "simple",
+                upscale: collectUpscale()
+            };
+
+            let finalParams;
+            if (uploadedImageFilename) {
+                 finalParams = {
+                    ...commonParams,
+                    model: "wan2.1_i2v_720p_14B_fp16.safetensors",
+                    denoise: 1.0,
+                    i2v: {
+                        enabled: true,
+                        image_ref: uploadedImageFilename
+                    }
+                };
+            } else {
+                finalParams = {
+                    ...commonParams,
+                    denoise: 1.0
+                };
+            }
+
+            const body = {
+                preset: "t2v", // Preset is t2v for both, logic inside params changes
+                params: finalParams
+            };
+
+            console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
+
+            const response = await fetch('http://localhost:8000/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await response.json();
+
+            if (response.ok && result.prompt_id) {
+                pollForResult(result.prompt_id);
+            } else {
+                const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
+                alert(`Error: ${errorMsg}`);
+                resetGenerateButton();
+            }
+
+        } catch (error) {
+            console.error('Request gagal:', error);
+            alert('Gagal menghubungi server. Pastikan server berjalan di localhost:8000.');
+            resetGenerateButton();
+        }
+    });
+
+    // ===== Dark Mode Toggle =====
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
+    const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    function setTheme(theme) {
+        document.body.dataset.theme = theme;
+        localStorage.setItem('theme', theme);
+        if (theme === 'dark') {
+            themeIcon.innerHTML = sunIcon;
+        } else {
+            themeIcon.innerHTML = moonIcon;
+        }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.body.dataset.theme || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+    });
+
+    // Load saved theme from localStorage or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else if (prefersDark) {
+        setTheme('dark');
+    } else {
+        setTheme('light');
+    }
+</script>
+</body>
+</html>
+

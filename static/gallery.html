@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SADIGIT AI – Galeri</title>
+  <style>
+    :root{
+      --bg:#f5f6f8;
+      --panel:#ffffff;
+      --line:#e6e8ee;
+      --muted:#8a8f98;
+      --text:#1d232f;
+      --brand:#2f6df6;
+      --brand-2:#5ea2ff;
+      --radius:14px;
+      --shadow:0 1px 2px rgba(14,18,22,.08), 0 8px 24px rgba(14,18,22,.08);
+      --shadow-soft:0 1px 2px rgba(14,18,22,.04), 0 4px 12px rgba(14,18,22,.06);
+      --btn-bg: #eef1f7;
+      --btn-text: #2a3342;
+      --nav-hover-bg: #f3f6ff;
+      --nav-active-bg: #eaf1ff;
+      --nav-active-text: #123;
+      --nav-active-outline: #d7e5ff;
+    }
+    
+    body[data-theme="dark"] {
+      --bg: #1a1d24;
+      --panel: #232730;
+      --line: #343842;
+      --muted: #7b829b;
+      --text: #e3e6f0;
+      --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.1);
+      --shadow-soft: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08);
+      --btn-bg: #2c313a;
+      --btn-text: #c5cadd;
+      --nav-hover-bg: #2c313a;
+      --nav-active-bg: #3c69ad;
+      --nav-active-text: #fff;
+      --nav-active-outline: transparent;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* ===== Root layout: Topbar + Body ===== */
+    .root{display:grid; grid-template-rows:56px 1fr; height:100vh}
+    .topbar{
+      background:var(--panel); border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0 18px;
+    }
+    .topbar .left{display:flex; align-items:center; gap:10px}
+    .topbar .left svg{width:22px;height:22px;color:var(--brand)}
+    .topbar strong{font-size:15px; letter-spacing:.2px}
+    .topbar .right{display:flex; align-items:center; gap:10px;}
+    .topbar .right button{
+      border:none; background:var(--btn-bg); border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--btn-text); font-weight:600;
+    }
+    .topbar .right .icon-btn {
+      width: 42px; height: 42px; padding: 0; display:grid; place-items:center;
+    }
+
+    /* ===== Body: Sidebar + Main ===== */
+    .app{display:grid; grid-template-columns:260px 1fr; height:100%}
+    .sidebar{
+      background:var(--panel); border-right:1px solid var(--line); padding:18px 14px; display:flex; flex-direction:column; gap:14px;
+    }
+    .side-title{color:#687086; font-weight:600; font-size:13px; padding:4px 10px}
+    .nav{display:flex; flex-direction:column; gap:6px}
+    .nav a{
+      all:unset; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--text);
+      text-decoration: none;
+    }
+    .nav a:hover{background:var(--nav-hover-bg)}
+    .nav a.active{background:var(--nav-active-bg); color:var(--nav-active-text); outline:1px solid var(--nav-active-outline)}
+    .nav a svg{width:18px;height:18px;color:#5b6b88}
+    body[data-theme="dark"] .nav a.active svg { color: #fff; }
+
+    .main{padding:20px; overflow:auto}
+    
+    /* ===== Gallery Specific Styles ===== */
+    .gallery-container h2 {
+        font-size: 24px;
+        color: var(--text);
+        margin: 0 0 20px 0;
+    }
+    .filter-nav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .filter-nav button {
+        border: 1px solid var(--line);
+        background-color: var(--panel);
+        color: var(--muted);
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .filter-nav button:hover {
+        background-color: var(--nav-hover-bg);
+        border-color: #d7e5ff;
+    }
+    body[data-theme="dark"] .filter-nav button:hover {
+        border-color: var(--brand-2);
+    }
+    .filter-nav button.active {
+        background-color: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+    }
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .gallery-item {
+        background-color: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-soft);
+        aspect-ratio: 1 / 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+        text-align: center;
+        color: var(--muted);
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s ease-in-out;
+    }
+     .gallery-item:hover {
+        transform: scale(1.05);
+    }
+    .gallery-item img, .gallery-item video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .gallery-item.audio-item svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 8px;
+        color: #c5cadd;
+    }
+    .gallery-item .title {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 13px;
+        margin-top: 4px;
+        word-break: break-all;
+    }
+    .gallery-item .subtitle {
+        font-size: 12px;
+    }
+    .gallery-item audio {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    /* ===== Lightbox Modal Styles ===== */
+    .lightbox {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* Prevent scrollbars on the overlay itself */
+        background-color: rgba(0,0,0,0.9);
+        justify-content: center;
+        align-items: center;
+        padding: 20px; /* Padding for spacing from screen edges */
+    }
+    .lightbox-content {
+        margin: auto;
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+    }
+    .lightbox-content img, .lightbox-content video {
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .lightbox-content audio {
+        width: 100%;
+        min-width: 400px;
+        max-width: 600px;
+    }
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        transition: 0.3s;
+        cursor: pointer;
+    }
+    .lightbox-close:hover,
+    .lightbox-close:focus {
+        color: #bbb;
+        text-decoration: none;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="root">
+    <!-- ===== TOPBAR ===== -->
+    <header class="topbar">
+      <div class="left">
+        <svg width="34" height="21" viewBox="0 0 34 21" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" fill="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" fill="#3C69AD"/><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" stroke="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" stroke="#3C69AD"/></svg>
+        <strong>SADIGIT AI</strong>
+      </div>
+      <div class="right">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <!-- Ikon akan diatur oleh JS -->
+            </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== BODY ===== -->
+    <div class="app">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="side-title">General</div>
+        <nav class="nav">
+          <a href="/">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+
+            AI Image
+          </a>
+          <a href="audio">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M7.5 2.5V17.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 5.83331V14.1666" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M10 5V15" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.5 7.5V12.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M15 5.83331V14.1666" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M17.5 9.16669V10.8334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M2.5 9.16669V10.8334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            AI Audio
+          </a>
+          <a href="video">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M1.6665 9.16665C1.6665 6.41679 1.6665 5.04185 2.52078 4.18759C3.37505 3.33331 4.74998 3.33331 7.49984 3.33331H8.33317C11.083 3.33331 12.4579 3.33331 13.3123 4.18759C14.1665 5.04185 14.1665 6.41679 14.1665 9.16665V10.8333C14.1665 13.5831 14.1665 14.9581 13.3123 15.8124C12.4579 16.6666 11.083 16.6666 8.33317 16.6666H7.49984C4.74998 16.6666 3.37505 16.6666 2.52078 15.8124C1.6665 14.9581 1.6665 13.5831 1.6665 10.8333V9.16665Z" stroke="white" stroke-width="1.5"/>
+<path d="M14.1665 7.42156L14.2714 7.33499C16.0346 5.88021 16.9162 5.15282 17.6247 5.50404C18.3332 5.85526 18.3332 7.01965 18.3332 9.34844V10.6516C18.3332 12.9804 18.3332 14.1448 17.6247 14.496C16.9162 14.8472 16.0346 14.1199 14.2714 12.665L14.1665 12.5784" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M9.5835 9.16669C10.2739 9.16669 10.8335 8.60704 10.8335 7.91669C10.8335 7.22633 10.2739 6.66669 9.5835 6.66669C8.89314 6.66669 8.3335 7.22633 8.3335 7.91669C8.3335 8.60704 8.89314 9.16669 9.5835 9.16669Z" stroke="white" stroke-width="1.5"/>
+</svg>
+
+            AI Video
+          </a>
+          <a href="faceswap">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.0835 6.82229C2.17021 5.07252 2.42964 3.98158 3.2057 3.20551C3.98176 2.42945 5.0727 2.17003 6.82247 2.08331M17.9168 6.82229C17.8301 5.07252 17.5707 3.98158 16.7947 3.20551C16.0186 2.42945 14.9276 2.17003 13.1778 2.08331M13.1778 17.9166C14.9276 17.8299 16.0186 17.5705 16.7947 16.7945C17.5707 16.0184 17.8301 14.9274 17.9168 13.1776M6.82246 17.9166C5.0727 17.8299 3.98176 17.5705 3.2057 16.7945C2.42964 16.0184 2.17021 14.9274 2.0835 13.1776" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M14.5832 14.1667L14.4147 13.4593C14.2754 12.8748 13.8323 12.4104 13.2549 12.2441L11.2498 11.6662L11.2496 10.4432C11.9968 9.93883 12.4996 8.99625 12.4996 7.91667C12.4996 6.30583 11.3803 5 9.99959 5C8.61884 5 7.49955 6.30583 7.49955 7.91667C7.49955 8.99625 8.0023 9.93883 8.74959 10.4432L8.74984 11.6662L6.75721 12.2495C6.19773 12.4133 5.76448 12.8575 5.61473 13.4209L5.4165 14.1667" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            face swap
+          </a>
+          <a href="uno">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+            Flux Uno
+          </a>
+          <a href="gallery.html" class="active">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5 14.9788C5.10725 16.0691 5.34963 16.803 5.89742 17.3507C6.87997 18.3333 8.46133 18.3333 11.6241 18.3333C14.7868 18.3333 16.3682 18.3333 17.3507 17.3507C18.3333 16.3682 18.3333 14.7868 18.3333 11.6241C18.3333 8.46133 18.3333 6.87997 17.3507 5.89742C16.803 5.34963 16.0691 5.10725 14.9788 5" stroke="white" stroke-width="1.5"/>
+<path d="M1.6665 8.33335C1.6665 5.19065 1.6665 3.61931 2.64281 2.643C3.61913 1.66669 5.19047 1.66669 8.33317 1.66669C11.4758 1.66669 13.0473 1.66669 14.0235 2.643C14.9998 3.61931 14.9998 5.19065 14.9998 8.33335C14.9998 11.476 14.9998 13.0474 14.0235 14.0237C13.0473 15 11.4758 15 8.33317 15C5.19047 15 3.61913 15 2.64281 14.0237C1.6665 13.0474 1.6665 11.476 1.6665 8.33335Z" stroke="white" stroke-width="1.5"/>
+<path d="M1.6665 9.26541C2.18235 9.19982 2.70387 9.16749 3.22626 9.16857C5.43621 9.12774 7.59204 9.73024 9.30909 10.8687C10.9015 11.9245 12.0204 13.3775 12.4998 15" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+<path d="M10.833 5.83331H10.8405" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+            galery
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main class="main">
+        <div class="gallery-container">
+            <h2>Galeri anda</h2>
+            <div class="filter-nav">
+                <button class="active" data-filter="all">Semua</button>
+                <button data-filter="image">Image</button>
+                <button data-filter="audio">Audio</button>
+                <button data-filter="video">Video</button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Konten akan di-generate oleh JavaScript -->
+            </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal Lightbox -->
+  <div id="lightbox" class="lightbox">
+    <span class="lightbox-close">&times;</span>
+    <div class="lightbox-content" id="lightboxContent">
+      <!-- Media akan diinjeksikan di sini -->
+    </div>
+  </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const galleryGrid = document.getElementById('galleryGrid');
+        const filterButtons = document.querySelectorAll('.filter-nav button');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxContent = document.getElementById('lightboxContent');
+        const lightboxClose = document.querySelector('.lightbox-close');
+
+        // Fungsi untuk membuka lightbox
+        function openLightbox(item) {
+            lightboxContent.innerHTML = ''; // Hapus konten sebelumnya
+            let mediaElement;
+
+            if (item.type === 'image') {
+                mediaElement = document.createElement('img');
+                mediaElement.src = item.url;
+            } else if (item.type === 'video') {
+                mediaElement = document.createElement('video');
+                mediaElement.src = item.url;
+                mediaElement.controls = true;
+                mediaElement.autoplay = true;
+                mediaElement.loop = true;
+            } else if (item.type === 'audio') {
+                mediaElement = document.createElement('audio');
+                mediaElement.src = item.url;
+                mediaElement.controls = true;
+                mediaElement.autoplay = true;
+            }
+
+            if (mediaElement) {
+                lightboxContent.appendChild(mediaElement);
+                lightbox.style.display = 'flex';
+            }
+        }
+
+        // Fungsi untuk menutup lightbox
+        function closeLightbox() {
+            lightbox.style.display = 'none';
+            lightboxContent.innerHTML = ''; // Ini akan menghentikan pemutaran media
+        }
+
+        // Event listener untuk menutup lightbox
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) { // Tutup hanya jika klik pada background
+                closeLightbox();
+            }
+        });
+
+        // Fungsi untuk mengambil dan menampilkan media
+        async function loadMedia() {
+            try {
+                const response = await fetch('http://localhost:8000/history/media');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                galleryGrid.innerHTML = ''; // Kosongkan grid sebelum mengisi
+
+                // Gabungkan semua media dan urutkan berdasarkan waktu modifikasi terbaru
+                const allMedia = [
+                    ...data.image.map(item => ({...item, type: 'image'})),
+                    ...data.video.map(item => ({...item, type: 'video'})),
+                    ...data.audio.map(item => ({...item, type: 'audio'}))
+                ];
+                allMedia.sort((a, b) => b.mtime - a.mtime);
+
+
+                allMedia.forEach(item => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.dataset.type = item.type;
+
+                    if (item.type === 'image') {
+                        galleryItem.innerHTML = `<img src="${item.url}" alt="${item.filename}" title="${item.filename}">`;
+                    } else if (item.type === 'video') {
+                        galleryItem.innerHTML = `
+                            <video muted loop style="width:100%; height:100%; object-fit: cover;">
+                                <source src="${item.url}" type="video/mp4">
+                                Browser tidak mendukung tag video.
+                            </video>`;
+                    } else if (item.type === 'audio') {
+                        galleryItem.classList.add('audio-item');
+                        galleryItem.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                            <div class="title" title="${item.filename}">${item.filename}</div>
+                            <div class="subtitle">Audio File</div>`;
+                    }
+                    
+                    // Tambahkan event listener untuk membuka lightbox
+                    galleryItem.addEventListener('click', () => openLightbox(item));
+                    
+                    galleryGrid.appendChild(galleryItem);
+                });
+
+            } catch (error) {
+                console.error("Gagal memuat media:", error);
+                galleryGrid.innerHTML = '<p style="color: var(--muted);">Gagal memuat galeri. Pastikan server berjalan.</p>';
+            }
+        }
+
+        // Fungsionalitas filter
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                const filter = button.dataset.filter;
+                const items = galleryGrid.querySelectorAll('.gallery-item');
+
+                items.forEach(item => {
+                    if (filter === 'all' || item.dataset.type === filter) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Muat media saat halaman pertama kali dibuka
+        loadMedia();
+
+        // ===== Dark Mode Toggle =====
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
+        const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+        function setTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.innerHTML = sunIcon;
+            } else {
+                themeIcon.innerHTML = moonIcon;
+            }
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.body.dataset.theme || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        });
+
+        // Load saved theme from localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (prefersDark) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+    });
+</script>
+</body>
+</html>
+

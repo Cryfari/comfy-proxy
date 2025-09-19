@@ -123,6 +123,31 @@ def _build_url(request: Request, category: str, filename: str) -> str:
     # URL ke endpoint file langsung
     return str(request.url_for("get_media_file", category=category, filename=filename))
 
+@app.get("/")
+async def image():
+    # return html page
+    return FileResponse("static/index.html", media_type="text/html")
+
+@app.get("/video")
+async def video():
+    return FileResponse("static/video_ui.html", media_type="text/html")
+
+@app.get("/audio")
+async def audio():
+    return FileResponse("static/audio_ui.html", media_type="text/html")
+
+@app.get("/faceswap")
+async def face_swap():
+    return FileResponse("static/faceswap.html", media_type="text/html")
+
+@app.get("/uno")
+async def uno():
+    return FileResponse("static/flux_uno.html", media_type="text/html")
+
+@app.get("/gallery")
+async def gallery():
+    return FileResponse("static/gallery.html", media_type="text/html")
+
 @app.websocket("/ws")
 async def ws_proxy(
     client_ws: WebSocket,
@@ -254,6 +279,12 @@ async def upload_audio(file: UploadFile = File(...)):
     r = await comfy_client.comfy_post("/upload/image", files=files)
     return r.json()
 
+@app.post("/interupt")
+async def interupt():
+    r = await comfy_client.comfy_post("/interupt")
+    return r.json()
+
+
 @app.post("/generate")
 async def generate(req: GenerateRequest):
     preset_path = pathlib.Path(__file__).parent / "presets" / f"{req.preset}.json"
@@ -277,14 +308,17 @@ async def generate(req: GenerateRequest):
     elif req.preset == "t2v":
         from .patchers import t2v
         wf = t2v.apply(workflow, req.params)
+    elif req.preset == "flux-uno":
+        from .patchers import flux_uno
+        wf = flux_uno.apply(workflow, req.params)
 
     CLIENT_ID = "comfy-proxy"
 
     prompt_id = str(uuid.uuid4())
-    # r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
+    r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
 
-    # resp = r.json()
-    # prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
+    resp = r.json()
+    prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
     want_save = SAVE_WORKFLOW or bool(req.params.get("save_workflow", False))
     if want_save:
         day = now_jkt_iso()[:10]  # YYYY-MM-DD
