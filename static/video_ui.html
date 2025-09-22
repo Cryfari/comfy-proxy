@@ -13,6 +13,7 @@
       --text:#1d232f;
       --brand:#2f6df6;
       --brand-2:#5ea2ff;
+      --danger: #f44336;
       --radius:14px;
       --shadow:0 1px 2px rgba(14,18,22,.08), 0 8px 24px rgba(14,18,22,.08);
       --shadow-soft:0 1px 2px rgba(14,18,22,.04), 0 4px 12px rgba(14,18,22,.06);
@@ -34,6 +35,7 @@
       --line: #343842;
       --muted: #7b829b;
       --text: #e3e6f0;
+      --danger: #e57373;
       --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.1);
       --shadow-soft: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08);
       --input-bg: #232730;
@@ -117,6 +119,7 @@
       background:var(--btn-bg); color:var(--btn-text);
     }
     .btn.primary{background:var(--brand); color:#fff}
+    .btn.danger { background: var(--danger); color: #fff; }
     .icon-btn{
       width:42px; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--panel); cursor:pointer;
       display:grid; place-items:center;
@@ -261,6 +264,13 @@
 <path d="M1 15.0001C1 15.9301 1 16.3951 1.10223 16.7766C1.37963 17.8118 2.18827 18.6205 3.22355 18.8979C3.60505 19.0001 4.07003 19.0001 5 19.0001H15C15.93 19.0001 16.395 19.0001 16.7765 18.8979C17.8117 18.6205 18.6204 17.8118 18.8978 16.7766C19 16.3951 19 15.9301 19 15.0001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
                 </button>
+                <button class="btn danger" id="btnInterrupt" title="Interrupt" style="display: none;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                    <path d="M5 5h6v6H5V5z"/>
+                  </svg>
+                  Interrupt
+                </button>
                 <button class="btn primary" id="btnGenerate">Generate video</button>
             </div>
           </section>
@@ -374,6 +384,7 @@
   </div>
 <script>
     let uploadedImageFilename = null;
+    let activePollingInterval = null;
 
     // ===== Helper: bind range <-> number =====
     function bindRangeNumber(range, number){
@@ -482,28 +493,53 @@
 
     // ===== Polling and Result Handling =====
     const btnGenerate = document.getElementById('btnGenerate');
+    const btnInterrupt = document.getElementById('btnInterrupt');
     const videoPlaceholder = document.getElementById('video-placeholder');
     const videoPreview = document.getElementById('video-preview');
     const btnDownload = document.getElementById('btnDownload');
     
     function resetGenerateButton() {
+        if(activePollingInterval) {
+            clearInterval(activePollingInterval);
+            activePollingInterval = null;
+        }
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate video';
+        btnInterrupt.style.display = 'none';
     }
+
+    btnInterrupt.addEventListener('click', async () => {
+        try {
+            const response = await fetch('http://localhost:8000/interupt', { method: 'POST' });
+            if (response.ok) {
+                console.log('Interrupt request sent.');
+                alert('Proses dihentikan.');
+                resetGenerateButton();
+                videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Proses Dibatalkan</div>`;
+            } else {
+                alert('Gagal mengirim perintah interupsi.');
+            }
+        } catch (error) {
+            console.error('Interrupt request failed:', error);
+            alert('Gagal menghubungi server untuk interupsi.');
+        }
+    });
 
     function pollForResult(promptId) {
         btnGenerate.textContent = 'Processing...';
+        btnInterrupt.style.display = 'inline-flex';
         videoPreview.style.display = 'none';
         videoPlaceholder.style.display = 'flex';
         videoPlaceholder.innerHTML = `<div class="muted" style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
         btnDownload.disabled = true;
 
-        const maxAttempts = 60*60*2; // 3 minutes timeout
+        const maxAttempts = 60*60*2; // 2 hours timeout
         let attempt = 0;
 
-        const intervalId = setInterval(async () => {
+        activePollingInterval = setInterval(async () => {
             if (attempt++ >= maxAttempts) {
-                clearInterval(intervalId);
+                clearInterval(activePollingInterval);
+                activePollingInterval = null;
                 alert('Generation timed out.');
                 resetGenerateButton();
                 videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Timeout</div>`;
@@ -515,7 +551,8 @@
                 const history = await response.json();
 
                 if (Object.keys(history).length > 0) {
-                    clearInterval(intervalId);
+                    clearInterval(activePollingInterval);
+                    activePollingInterval = null;
                     const promptData = history[promptId];
                     let outputVideo = null;
                     if (promptData && promptData.outputs) {

@@ -1,4 +1,4 @@
-# File: app/patchers/t2i_lora_control.py
+# File: app/patchers/t2i.py
 import copy
 
 
@@ -15,19 +15,11 @@ def _first_node(wf, class_type):
 def _out(nid, idx=0): return [nid, idx]
 
 def _default_upscale_model(scale: int | None) -> str:
-    if scale == 1: return "1x-ESRGAN.safetensors"
-    if scale == 2: return "2x-ESRGAN.safetensors"
-    if scale == 4: return "4x-ESRGAN.safetensors" 
-    if scale == 8: return "8x-ESRGAN.safetensors"
-    return "2x-ESRGAN.safetensors"
+    # Anda bisa sesuaikan nama model default di sini
+    return "4x-ESRGAN.safetensors"
 
 def _get_decode_output(wf):
     # cari VAEDecode → output 0 adalah image
-    vd_id, vd = _first_node(wf, "VAEDecode")
-    if not vd:
-        raise RuntimeError("VAEDecode not found")
-    return _out(vd_id, 0)
-def _decode_output(wf):
     vd_id, vd = _first_node(wf, "VAEDecode")
     if not vd:
         raise RuntimeError("VAEDecode not found")
@@ -39,48 +31,13 @@ def _rewire_sinks_to(wf, img_ref):
             if "images" in node.get("inputs", {}):
                 node["inputs"]["images"] = img_ref
 
-def _ensure_upscaler_nodes(wf, image_ref, model_name):
-    # coba pakai kalau template sudah ada:
-    up_loader_id, up_loader = _first_node(wf, "UpscaleModelLoader")
-    up_node_id, up_node = _first_node(wf, "ImageUpscaleWithModel")
-
-    import copy
-    if up_loader and up_node:
-        # clone agar aman untuk pipeline dinamis
-        new_loader_id = _next_id(wf); wf[new_loader_id] = copy.deepcopy(up_loader); up_loader_id = new_loader_id
-        new_up_id = _next_id(wf); wf[new_up_id] = copy.deepcopy(up_node); up_node_id = new_up_id
-    else:
-        # bikin baru dari nol
-        up_loader_id = _next_id(wf)
-        wf[up_loader_id] = {
-            "class_type": "UpscaleModelLoader",
-            "inputs": {"model_name": model_name},
-            "_meta": {"title": "Load Upscale Model (dyn)"}
-        }
-        up_node_id = _next_id(wf)
-        wf[up_node_id] = {
-            "class_type": "ImageUpscaleWithModel",
-            "inputs": {"image": image_ref, "upscale_model": _out(up_loader_id, 0)},
-            "_meta": {"title": "Upscale Image (dyn)"}
-        }
-        return up_node_id  # early return bila buat baru
-
-    # set nilai untuk clone
-    wf[up_loader_id]["inputs"]["model_name"] = model_name
-    wf[up_node_id]["inputs"]["image"] = image_ref
-    wf[up_node_id]["inputs"]["upscale_model"] = _out(up_loader_id, 0)
-
-    return up_node_id
-
 def apply_faceswap(wf: dict, faceswap: dict) -> dict:
     """faceswap: dict dari params['faceswap']"""
     enabled = bool(faceswap.get("enabled", False))
-    # jika tidak aktif → arahkan sink ke VAEDecode
     if not enabled:
-        _rewire_sinks_to(wf, _decode_output(wf))
-        return wf
+        return wf # Jangan rewire jika tidak aktif, biarkan upscale yang mengatur
 
-    # 1) muat source face (default: base64 loader)
+    # 1) muat source face
     src_b64 = faceswap.get("source_image_b64")
     if not src_b64:
         raise RuntimeError("faceswap.enabled=true but no source_image_b64 provided")
@@ -105,7 +62,6 @@ def apply_faceswap(wf: dict, faceswap: dict) -> dict:
                 "interpolation": boost_cfg.get("interpolation", "Bilinear"),
                 "visibility": float(boost_cfg.get("visibility", 1.0)),
                 "codeformer_weight": float(boost_cfg.get("codeformer_weight", 0.5)),
-                "restore_with_main_after": bool(boost_cfg.get("restore_with_main_after", False)),
             },
             "_meta": {"title": "ReActor Face Booster (dyn)"}
         }
@@ -113,6 +69,11 @@ def apply_faceswap(wf: dict, faceswap: dict) -> dict:
 
     # 3) FaceSwap node
     swap_id = _next_id(wf)
+    
+    # Ambil output dari upscale atau VAE decode sebagai input
+    up_mix_id, _ = _first_node(wf, "JWImageMix")
+    input_image_ref = _out(up_mix_id, 0) if up_mix_id else _get_decode_output(wf)
+
     wf[swap_id] = {
         "class_type": "ReActorFaceSwap",
         "inputs": {
@@ -122,14 +83,11 @@ def apply_faceswap(wf: dict, faceswap: dict) -> dict:
             "face_restore_model": faceswap.get("face_restore_model", "none"),
             "face_restore_visibility": float(faceswap.get("face_restore_visibility", 1.0)),
             "codeformer_weight": float(faceswap.get("codeformer_weight", 0.5)),
-            "detect_gender_input": faceswap.get("detect_gender_input", "no"),
-            "detect_gender_source": faceswap.get("detect_gender_source", "no"),
             "input_faces_index": str(faceswap.get("input_faces_index", "0")),
             "source_faces_index": str(faceswap.get("source_faces_index", "0")),
-            "console_log_level": int(faceswap.get("console_log_level", 1)),
-            "input_image": _decode_output(wf),
+            "input_image": input_image_ref,
             "source_image": _out(load_id, 0),
-            "face_boost": boost_ref if boost_ref else _out(load_id, 0),  # ReActor minta field ini; jika tak pakai booster, isi dummy
+            "face_boost": boost_ref,
         },
         "_meta": {"title": "ReActor Face Swap (dyn)"}
     }
@@ -138,38 +96,116 @@ def apply_faceswap(wf: dict, faceswap: dict) -> dict:
     _rewire_sinks_to(wf, _out(swap_id, 0))
     return wf
 
-
 def apply_upscale(wf: dict, params: dict) -> dict:
     up = params.get("upscale") or {}
     enabled = bool(up.get("enabled", False))
-    if not enabled:
-        # rewire sinks ke VAEDecode (no-upscale)
-        vd_ref = _get_decode_output(wf)
-        _rewire_sinks_to(wf, vd_ref)
-        return wf
-
-    scale = up.get("scale")
-    model_name = up.get("model_name") or _default_upscale_model(scale)
-
-    # input image = hasil VAEDecode
+    
     base_image_ref = _get_decode_output(wf)
 
-    # buat / clone pasangan upscaler → ambil outputnya
-    up_node_id = _ensure_upscaler_nodes(wf, base_image_ref, model_name)
-    up_image_ref = _out(up_node_id, 0)
+    if not enabled:
+        # Tanpa upscale, arahkan sink ke output VAE Decode
+        _rewire_sinks_to(wf, base_image_ref)
+        return wf
 
-    # (opsional) kalau ingin batasi dimensi akhir → tambahkan node ResizeImage di sini
-    # if up.get("target_max"):
-    #   ...
+    # --- Implementasi Alur Kerja Upscale dengan Blending ---
 
-    # arahkan SaveImage / SendImage ke hasil upscale
-    _rewire_sinks_to(wf, up_image_ref)
+    scale_factor = int(up.get("scale", 2))
+    model_name = up.get("model_name") or _default_upscale_model(scale_factor)
+    blend_factor = float(up.get("blend", 0.5))
+    method = up.get("method", "lanczos")
+
+    # 1. Dapatkan ukuran gambar asli
+    get_size_id = _next_id(wf)
+    wf[get_size_id] = {
+        "class_type": "DF_Get_image_size",
+        "inputs": {"image": base_image_ref},
+        "_meta": {"title": "Get image size (dyn)"}
+    }
+
+    # 2. Buat node untuk faktor upscale
+    factor_id = _next_id(wf)
+    wf[factor_id] = {
+        "class_type": "Int Literal",
+        "inputs": {"int": scale_factor},
+        "_meta": {"title": "Upscale Factor (dyn)"}
+    }
+
+    # 3. Hitung lebar dan tinggi target
+    mul_w_id = _next_id(wf)
+    wf[mul_w_id] = {
+        "class_type": "JWIntegerMul",
+        "inputs": {"a": _out(get_size_id, 0), "b": _out(factor_id, 0)},
+        "_meta": {"title": "Width Multiplier (dyn)"}
+    }
+    mul_h_id = _next_id(wf)
+    wf[mul_h_id] = {
+        "class_type": "JWIntegerMul",
+        "inputs": {"a": _out(get_size_id, 1), "b": _out(factor_id, 0)},
+        "_meta": {"title": "Height Multiplier (dyn)"}
+    }
+
+    # 4. Muat model upscaler
+    loader_id = _next_id(wf)
+    wf[loader_id] = {
+        "class_type": "UpscaleModelLoader",
+        "inputs": {"model_name": model_name},
+        "_meta": {"title": "Load Upscale Model (dyn)"}
+    }
+
+    # 5. Lakukan upscale pada gambar asli
+    upscale_node_id = _next_id(wf)
+    wf[upscale_node_id] = {
+        "class_type": "ImageUpscaleWithModel",
+        "inputs": {"upscale_model": _out(loader_id, 0), "image": base_image_ref},
+        "_meta": {"title": "Upscale with Model (dyn)"}
+    }
+
+    # 6. Skalakan gambar yang sudah di-upscale ke dimensi target (untuk konsistensi)
+    scale_upscaled_id = _next_id(wf)
+    wf[scale_upscaled_id] = {
+        "class_type": "ImageScale",
+        "inputs": {
+            "upscale_method": method,
+            "width": _out(mul_w_id, 0), "height": _out(mul_h_id, 0),
+            "crop": "disabled", "image": _out(upscale_node_id, 0)
+        },
+        "_meta": {"title": "Scale Upscaled Image (dyn)"}
+    }
+
+    # 7. Skalakan gambar asli ke dimensi target
+    scale_original_id = _next_id(wf)
+    wf[scale_original_id] = {
+        "class_type": "ImageScale",
+        "inputs": {
+            "upscale_method": method,
+            "width": _out(mul_w_id, 0), "height": _out(mul_h_id, 0),
+            "crop": "disabled", "image": base_image_ref
+        },
+        "_meta": {"title": "Scale Original Image (dyn)"}
+    }
+
+    # 8. Campurkan (blend) kedua gambar yang sudah diskalakan
+    mix_id = _next_id(wf)
+    wf[mix_id] = {
+        "class_type": "JWImageMix",
+        "inputs": {
+            "blend_type": "mix", "factor": blend_factor,
+            "image_a": _out(scale_upscaled_id, 0),
+            "image_b": _out(scale_original_id, 0)
+        },
+        "_meta": {"title": "Image Mix (dyn)"}
+    }
+
+    # 9. Arahkan sink (SaveImage, dll) ke hasil akhir dari mix
+    _rewire_sinks_to(wf, _out(mix_id, 0))
+    
     return wf
+
 
 def apply(workflow: dict, params: dict) -> dict:
     wf = copy.deepcopy(workflow)
 
-    # 1. Atur parameter dasar (sama seperti t2i_lora)
+    # 1. Atur parameter dasar
     prompt = params.get("prompt", "")
     negative = params.get("negative", "")
     steps = int(params.get("steps", 20))
@@ -180,32 +216,27 @@ def apply(workflow: dict, params: dict) -> dict:
 
     for _, node in _find_nodes(wf, "CLIPTextEncode"):
         title = node.get("_meta", {}).get("title", "").lower()
-        if "positive" in title:
-            node["inputs"]["text"] = prompt
-        if "negative" in title:
-            node["inputs"]["text"] = negative
+        if "positive" in title: node["inputs"]["text"] = prompt
+        if "negative" in title: node["inputs"]["text"] = negative
 
-    ks_nodes = _find_nodes(wf, "KSampler")
-    if not ks_nodes:
-        raise RuntimeError("KSampler not found")
-    ks_id, ks_node = ks_nodes[0]
+    ks_id, ks_node = _first_node(wf, "KSampler")
+    if not ks_node: raise RuntimeError("KSampler not found")
     ks_node["inputs"].update({"steps": steps, "cfg": cfg, "seed": seed})
     if "sampler" in params:   ks_node["inputs"]["sampler_name"] = params["sampler"]
     if "scheduler" in params: ks_node["inputs"]["scheduler"] = params["scheduler"]
     if "denoise" in params:   ks_node["inputs"]["denoise"] = float(params["denoise"])
 
-    for _, node in _find_nodes(wf, "EmptySD3LatentImage"):
-        node["inputs"].update({"width": width, "height": height})
+    empty_latent_id, empty_latent_node = _first_node(wf, "EmptySD3LatentImage")
+    if empty_latent_node:
+        empty_latent_node["inputs"].update({"width": width, "height": height})
 
-    # 2. Temukan titik awal untuk model dan clip
-    ckpt_nodes = _find_nodes(wf, "CheckpointLoaderSimple")
-    if not ckpt_nodes:
-        raise RuntimeError("CheckpointLoaderSimple not found")
-    ckpt_id, _ = ckpt_nodes[0]
+    # 2. Temukan titik awal model dan clip
+    ckpt_id, _ = _first_node(wf, "CheckpointLoaderSimple")
+    if not ckpt_id: raise RuntimeError("CheckpointLoaderSimple not found")
     
-    # 3. Sisipkan LoRA (sama seperti t2i_lora)
+    # 3. Sisipkan LoRA
     loras = params.get("loras", []) or []
-    last_model, last_clip = [ckpt_id, 0], [ckpt_id, 1]
+    last_model, last_clip = _out(ckpt_id, 0), _out(ckpt_id, 1)
 
     for l in loras:
         lora_loader_id = _next_id(wf)
@@ -214,12 +245,11 @@ def apply(workflow: dict, params: dict) -> dict:
                 "lora_name": l.get("lora_name"),
                 "strength_model": float(l.get("strength_model", 0.8)),
                 "strength_clip": float(l.get("strength_clip", 0.8)),
-                "model": last_model,
-                "clip": last_clip,
+                "model": last_model, "clip": last_clip,
             },
             "class_type": "LoraLoader",
         }
-        last_model, last_clip = [lora_loader_id, 0], [lora_loader_id, 1]
+        last_model, last_clip = _out(lora_loader_id, 0), _out(lora_loader_id, 1)
     
     # 4. Hubungkan ulang clip ke semua CLIPTextEncode
     for _, node in _find_nodes(wf, "CLIPTextEncode"):
@@ -228,71 +258,47 @@ def apply(workflow: dict, params: dict) -> dict:
     # 5. Sisipkan ControlNets secara dinamis
     controls = params.get("controls", []) or []
     
-    # Temukan sumber positive dan negative conditioning awal
-    pos_prompt_id = _find_nodes(wf, "CLIPTextEncode")[0][0] # Asumsi pertama positif
-    neg_prompt_id = _find_nodes(wf, "CLIPTextEncode")[1][0] # Asumsi kedua negatif
+    pos_prompt_id, _ = [n for n in _find_nodes(wf, "CLIPTextEncode") if "positive" in n[1].get("_meta",{}).get("title","").lower()][0]
+    neg_prompt_id, _ = [n for n in _find_nodes(wf, "CLIPTextEncode") if "negative" in n[1].get("_meta",{}).get("title","").lower()][0]
     
-    curr_cond = [[pos_prompt_id, 0], [neg_prompt_id, 0]] # [positive, negative]
+    curr_cond = [_out(pos_prompt_id, 0), _out(neg_prompt_id, 0)]
 
     for ctrl in controls:
         if not ctrl.get("image"): continue
 
-        # Node A: Muat gambar (Base64)
         load_image_id = _next_id(wf)
-        wf[load_image_id] = {
-            "inputs": {"image": ctrl["image"]},
-            "class_type": "ETN_LoadImageBase64",
-        }
+        wf[load_image_id] = { "inputs": {"image": ctrl["image"]}, "class_type": "ETN_LoadImageBase64" }
 
-        # Node B: Preprocessor
         preprocessor_name = ctrl.get("preprocessor", "none").strip()
         if preprocessor_name == "none": continue
         
         pre_id = _next_id(wf)
         wf[pre_id] = {
-            "inputs": {
-                "preprocessor": preprocessor_name,
-                "resolution": int(ctrl.get("resolution", 512)),
-                "image": [load_image_id, 0],
-            },
+            "inputs": { "preprocessor": preprocessor_name, "resolution": int(ctrl.get("resolution", 512)), "image": _out(load_image_id, 0) },
             "class_type": "AIO_Preprocessor",
         }
         
-        # Node C: Muat model ControlNet
         cnl_id = _next_id(wf)
-        model_name = "ConntrolnetUnionPro2.safetensors"
-        wf[cnl_id] = {
-            "inputs": {"control_net_name": model_name},
-            "class_type": "ControlNetLoader",
-        }
+        wf[cnl_id] = { "inputs": {"control_net_name": "ControlnetUnionPro2.safetensors"}, "class_type": "ControlNetLoader" }
         
-        # Node D: Terapkan ControlNet (Advanced)
         app_id = _next_id(wf)
-        # ambil checkpoint id
-        cp_id = _find_nodes(wf, "CheckpointLoaderSimple")[0][0]
-        
         wf[app_id] = {
             "inputs": {
-                "strength": float(ctrl.get("strength", 1.0)),
-                "start_percent": float(ctrl.get("start_percent", 0.0)),
-                "end_percent": float(ctrl.get("end_percent", 1.0)),
-                "positive": curr_cond[0], # Ambil dari iterasi sebelumnya
-                "negative": curr_cond[1], # Ambil dari iterasi sebelumnya
-                "control_net": [cnl_id, 0],
-                "image": [pre_id, 0],
-                "vae": [cp_id, 2],
+                "strength": float(ctrl.get("strength", 1.0)), "start_percent": float(ctrl.get("start_percent", 0.0)), "end_percent": float(ctrl.get("end_percent", 1.0)),
+                "positive": curr_cond[0], "negative": curr_cond[1],
+                "control_net": _out(cnl_id, 0), "image": _out(pre_id, 0),
+                "vae": _out(ckpt_id, 2),
             },
             "class_type": "ControlNetApplyAdvanced",
         }
-        # Perbarui conditioning untuk iterasi berikutnya
-        curr_cond = [[app_id, 0], [app_id, 1]]
+        curr_cond = [_out(app_id, 0), _out(app_id, 1)]
 
-    # 6. Hubungkan kembali KSampler ke sumber akhir (setelah LoRA dan ControlNet)
+    # 6. Hubungkan KSampler ke sumber akhir (setelah LoRA dan ControlNet)
     ks_node["inputs"]["model"] = last_model
     ks_node["inputs"]["positive"] = curr_cond[0]
     ks_node["inputs"]["negative"] = curr_cond[1]
 
-
+    # 7. Terapkan upscale dan faceswap (dalam urutan ini)
     wf = apply_upscale(wf, params)
     wf = apply_faceswap(wf, params.get("faceswap", {}))
     return wf

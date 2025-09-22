@@ -1,622 +1,901 @@
 <!doctype html>
 <html lang="id">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SADIGIT AI – Face Swap</title>
-  <style>
-    :root{
-      --bg:#f5f6f8;
-      --panel:#ffffff;
-      --line:#e6e8ee;
-      --muted:#8a8f98;
-      --text:#1d232f;
-      --brand:#2f6df6;
-      --brand-2:#5ea2ff;
-      --radius:14px;
-      --shadow:0 1px 2px rgba(14,18,22,.08), 0 8px 24px rgba(14,18,22,.08);
-      --shadow-soft:0 1px 2px rgba(14,18,22,.04), 0 4px 12px rgba(14,18,22,.06);
-      --input-bg: #fff;
-      --btn-bg: #eef1f7;
-      --btn-text: #2a3342;
-      --nav-hover-bg: #f3f6ff;
-      --nav-active-bg: #eaf1ff;
-      --nav-active-text: #123;
-      --nav-active-outline: #d7e5ff;
-      --dropzone-result-bg: #e3e6f0;
-    }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SADIGIT AI – Face Swap</title>
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --panel: #ffffff;
+            --line: #e6e8ee;
+            --muted: #8a8f98;
+            --text: #1d232f;
+            --brand: #2f6df6;
+            --brand-2: #5ea2ff;
+            --danger: #f44336;
+            --radius: 14px;
+            --shadow: 0 1px 2px rgba(14, 18, 22, .08), 0 8px 24px rgba(14, 18, 22, .08);
+            --shadow-soft: 0 1px 2px rgba(14, 18, 22, .04), 0 4px 12px rgba(14, 18, 22, .06);
+            --input-bg: #fff;
+            --btn-bg: #eef1f7;
+            --btn-text: #2a3342;
+            --nav-hover-bg: #f3f6ff;
+            --nav-active-bg: #eaf1ff;
+            --nav-active-text: #123;
+            --nav-active-outline: #d7e5ff;
+            --dropzone-result-bg: #e3e6f0;
+        }
 
-    body[data-theme="dark"] {
-      --bg: #1a1d24;
-      --panel: #232730;
-      --line: #343842;
-      --muted: #7b829b;
-      --text: #e3e6f0;
-      --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.1);
-      --shadow-soft: 0 1px 2px rgba(0,0,0,.05), 0 4px 12px rgba(0,0,0,.08);
-      --input-bg: #232730;
-      --btn-bg: #2c313a;
-      --btn-text: #c5cadd;
-      --nav-hover-bg: #2c313a;
-      --nav-active-bg: #3c69ad;
-      --nav-active-text: #fff;
-      --nav-active-outline: transparent;
-      --dropzone-result-bg: #1f2229;
-    }
+        body[data-theme="dark"] {
+            --bg: #1a1d24;
+            --panel: #232730;
+            --line: #343842;
+            --muted: #7b829b;
+            --text: #e3e6f0;
+            --danger: #e57373;
+            --shadow: 0 1px 2px rgba(0, 0, 0, .1), 0 8px 24px rgba(0, 0, 0, .1);
+            --shadow-soft: 0 1px 2px rgba(0, 0, 0, .05), 0 4px 12px rgba(0, 0, 0, .08);
+            --input-bg: #232730;
+            --btn-bg: #2c313a;
+            --btn-text: #c5cadd;
+            --nav-hover-bg: #2c313a;
+            --nav-active-bg: #3c69ad;
+            --nav-active-text: #fff;
+            --nav-active-outline: transparent;
+            --dropzone-result-bg: #1f2229;
+        }
 
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Apple Color Emoji","Segoe UI Emoji";
-      transition: background-color 0.3s, color 0.3s;
-    }
+        * {
+            box-sizing: border-box
+        }
 
-    /* ===== Root layout: Topbar + Body ===== */
-    .root{display:grid; grid-template-rows:56px 1fr; height:100vh}
-    .topbar{
-      background:var(--panel); border-bottom:1px solid var(--line);
-      display:flex; align-items:center; justify-content:space-between;
-      padding:0 18px;
-    }
-    .topbar .left{display:flex; align-items:center; gap:10px}
-    .topbar .left svg{width:22px;height:22px;color:var(--brand)}
-    .topbar strong{font-size:15px; letter-spacing:.2px}
-    .topbar .right{display:flex; align-items:center; gap:10px;}
-    .topbar .right button{
-      border:none; background:var(--btn-bg); border-radius:10px; padding:8px 12px; cursor:pointer; color:var(--btn-text); font-weight:600;
-    }
-    .topbar .right .icon-btn {
-      width: 42px; height: 42px; padding: 0; display:grid; place-items:center;
-    }
+        html,
+        body {
+            height: 100%
+        }
 
-    /* ===== Body: Sidebar + Main ===== */
-    .app{display:grid; grid-template-columns:260px 1fr; height:100%}
-    .sidebar{
-      background:var(--panel); border-right:1px solid var(--line); padding:18px 14px; display:flex; flex-direction:column; gap:14px;
-    }
-    .side-title{color:#687086; font-weight:600; font-size:13px; padding:4px 10px}
-    .nav{display:flex; flex-direction:column; gap:6px}
-    .nav a{
-      all:unset; display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; color:var(--text);
-      text-decoration: none;
-    }
-    .nav a:hover{background:var(--nav-hover-bg)}
-    .nav a.active{background:var(--nav-active-bg); color:var(--nav-active-text); outline:1px solid var(--nav-active-outline)}
-    .nav a svg {
-        width: 18px;
-        height: 18px;
-        color: currentColor;
-        opacity: 0.6;
-    }
-    .nav a:hover svg, .nav a.active svg {
-        opacity: 1;
-    }
-    body[data-theme="dark"] .nav a.active svg { color: #fff; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-    .main{padding:20px; overflow:auto}
-    
-    /* ===== Face Swap Specific Styles ===== */
-    .faceswap-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .faceswap-main {
-        display: grid;
-        grid-template-columns: 500px 1fr 1fr;
-        gap: 20px;
-    }
-    .image-dropzone {
-        background-color: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        text-align: center;
-        cursor: pointer;
-        position: relative;
-    }
-    .image-dropzone:hover {
-        border-color: var(--brand);
-    }
-    .image-dropzone .placeholder {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    .image-dropzone .placeholder svg {
-        width: 64px;
-        height: 64px;
-        color: var(--muted);
-    }
-    .image-dropzone img {
-        max-width: 100%;
-        max-height: 100%;
-        border-radius: var(--radius);
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .image-dropzone.result {
-        grid-column: span 1;
-        aspect-ratio: 1/1;
-        background-color: var(--dropzone-result-bg);
-    }
-    .image-dropzone.source {
-        aspect-ratio: 1/1;
-    }
-    .image-dropzone .label {
-        margin-top: 10px;
-        font-weight: 600;
-        color: var(--muted);
-    }
-    .faceswap-controls {
-        grid-column: span 2;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-    .faceswap-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: auto;
-    }
-    .btn {
-        border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600;
-        background:var(--btn-bg); color:var(--btn-text);
-    }
-    .btn.primary {
-        background: var(--brand);
-        color: #fff;
-        flex-grow: 1;
-    }
-    .icon-btn {
-        width: 42px;
-        height: 42px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--panel);
-        cursor: pointer;
-        display: grid;
-        place-items: center;
-        color: var(--text);
-    }
-    .icon-btn:hover { background: var(--nav-hover-bg); }
+        /* ===== Root layout: Topbar + Body ===== */
+        .root {
+            display: grid;
+            grid-template-rows: 56px 1fr;
+            height: 100vh
+        }
 
-    .control-row { display: flex; align-items: center; gap: 15px; }
-    .control-row label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-    .control-row select { width: 100%; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text); }
-    .control-row .slider-group { flex-grow: 1; text-align: left; }
-    .control-row .slider-group label { font-size: 12px; color: var(--muted); margin-bottom: 4px; display:block; }
-    .control-row input[type=range] { width: 100%; accent-color: var(--brand); }
-    
-  </style>
+        .topbar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+        }
+
+        .topbar .left {
+            display: flex;
+            align-items: center;
+            gap: 10px
+        }
+
+        .topbar .left svg {
+            width: 22px;
+            height: 22px;
+            color: var(--brand)
+        }
+
+        .topbar strong {
+            font-size: 15px;
+            letter-spacing: .2px
+        }
+
+        .topbar .right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar .right button {
+            border: none;
+            background: var(--btn-bg);
+            border-radius: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--btn-text);
+            font-weight: 600;
+        }
+
+        .topbar .right .icon-btn {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+        }
+
+        /* ===== Body: Sidebar + Main ===== */
+        .app {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            height: 100%
+        }
+
+        .sidebar {
+            background: var(--panel);
+            border-right: 1px solid var(--line);
+            padding: 18px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .side-title {
+            color: #687086;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 4px 10px
+        }
+
+        .nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+
+        .nav a {
+            all: unset;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav a:hover {
+            background: var(--nav-hover-bg)
+        }
+
+        .nav a.active {
+            background: var(--nav-active-bg);
+            color: var(--nav-active-text);
+            outline: 1px solid var(--nav-active-outline)
+        }
+
+        .nav a svg {
+            width: 18px;
+            height: 18px;
+            color: currentColor;
+            opacity: 0.6;
+        }
+
+        .nav a:hover svg,
+        .nav a.active svg {
+            opacity: 1;
+        }
+
+        body[data-theme="dark"] .nav a.active svg {
+            color: #fff;
+        }
+
+        .main {
+            padding: 20px;
+            overflow: auto
+        }
+
+        /* ===== Face Swap Specific Styles ===== */
+        .faceswap-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .faceswap-main {
+            display: grid;
+            grid-template-columns: 500px 1fr 1fr;
+            gap: 20px;
+        }
+
+        .image-dropzone {
+            background-color: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .image-dropzone:hover {
+            border-color: var(--brand);
+        }
+
+        .image-dropzone .placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .image-dropzone .placeholder svg {
+            width: 64px;
+            height: 64px;
+            color: var(--muted);
+        }
+
+        .image-dropzone img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: var(--radius);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .image-dropzone.result {
+            grid-column: span 1;
+            aspect-ratio: 1/1;
+            background-color: var(--dropzone-result-bg);
+        }
+
+        .image-dropzone.source {
+            aspect-ratio: 1/1;
+        }
+
+        .image-dropzone .label {
+            margin-top: 10px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .faceswap-controls {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .faceswap-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+            background: var(--btn-bg);
+            color: var(--btn-text);
+        }
+
+        .btn.primary {
+            background: var(--brand);
+            color: #fff;
+            flex-grow: 1;
+        }
+
+        .btn.danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .icon-btn {
+            width: 42px;
+            height: 42px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: var(--panel);
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            color: var(--text);
+        }
+
+        .icon-btn:hover {
+            background: var(--nav-hover-bg);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .control-row label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .control-row select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 12px;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        .control-row .slider-group {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .control-row .slider-group label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .control-row input[type=range] {
+            width: 100%;
+            accent-color: var(--brand);
+        }
+    </style>
 </head>
+
 <body>
-  <div class="root">
-    <!-- ===== TOPBAR ===== -->
-    <header class="topbar">
-      <div class="left">
-        <svg width="34" height="21" viewBox="0 0 34 21" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" fill="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" fill="#3C69AD"/><path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" stroke="#3C69AD"/><path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" stroke="#3C69AD"/></svg>
-        <strong>SADIGIT AI</strong>
-      </div>
-      <div class="right">
-        <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">
-            <svg id="themeIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                <!-- Ikon akan diatur oleh JS -->
-            </svg>
-        </button>
-      </div>
-    </header>
+    <div class="root">
+        <!-- ===== TOPBAR ===== -->
+        <header class="topbar">
+            <div class="left">
+                <svg width="34" height="21" viewBox="0 0 34 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" fill="#3C69AD" />
+                    <path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" fill="#3C69AD" />
+                    <path d="M12.4348 0.5L5.47826 12.6739L14.1739 7.45652H22.8696L32 0.5H12.4348Z" stroke="#3C69AD" />
+                    <path d="M11.5652 13.5435L2 20.5H22L28.087 8.32609L20.2609 13.5435H11.5652Z" stroke="#3C69AD" />
+                </svg>
+                <strong>SADIGIT AI</strong>
+            </div>
+            <div class="right">
+                <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">
+                    <svg id="themeIcon" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                        <!-- Ikon akan diatur oleh JS -->
+                    </svg>
+                </button>
+            </div>
+        </header>
 
-    <!-- ===== BODY ===== -->
-    <div class="app">
-      <!-- Sidebar -->
-      <aside class="sidebar">
-        <div class="side-title">General</div>
-        <nav class="nav">
-          <a href="/">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            AI Image
-          </a>
-          <a href="audio">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M7.5 2.5V17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M5 5.83331V14.1666" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M10 5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12.5 7.5V12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M15 5.83331V14.1666" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M17.5 9.16669V10.8334" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M2.5 9.16669V10.8334" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            AI Audio
-          </a>
-          <a href="video">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M1.6665 9.16665C1.6665 6.41679 1.6665 5.04185 2.52078 4.18759C3.37505 3.33331 4.74998 3.33331 7.49984 3.33331H8.33317C11.083 3.33331 12.4579 3.33331 13.3123 4.18759C14.1665 5.04185 14.1665 6.41679 14.1665 9.16665V10.8333C14.1665 13.5831 14.1665 14.9581 13.3123 15.8124C12.4579 16.6666 11.083 16.6666 8.33317 16.6666H7.49984C4.74998 16.6666 3.37505 16.6666 2.52078 15.8124C1.6665 14.9581 1.6665 13.5831 1.6665 10.8333V9.16665Z" stroke="currentColor" stroke-width="1.5"/>
-<path d="M14.1665 7.42156L14.2714 7.33499C16.0346 5.88021 16.9162 5.15282 17.6247 5.50404C18.3332 5.85526 18.3332 7.01965 18.3332 9.34844V10.6516C18.3332 12.9804 18.3332 14.1448 17.6247 14.496C16.9162 14.8472 16.0346 14.1199 14.2714 12.665L14.1665 12.5784" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-<path d="M9.5835 9.16669C10.2739 9.16669 10.8335 8.60704 10.8335 7.91669C10.8335 7.22633 10.2739 6.66669 9.5835 6.66669C8.89314 6.66669 8.3335 7.22633 8.3335 7.91669C8.3335 8.60704 8.89314 9.16669 9.5835 9.16669Z" stroke="currentColor" stroke-width="1.5"/>
-</svg>
-            AI Video
-          </a>
-          <a href="faceswap.html" class="active">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2.0835 6.82229C2.17021 5.07252 2.42964 3.98158 3.2057 3.20551C3.98176 2.42945 5.0727 2.17003 6.82247 2.08331M17.9168 6.82229C17.8301 5.07252 17.5707 3.98158 16.7947 3.20551C16.0186 2.42945 14.9276 2.17003 13.1778 2.08331M13.1778 17.9166C14.9276 17.8299 16.0186 17.5705 16.7947 16.7945C17.5707 16.0184 17.8301 14.9274 17.9168 13.1776M6.82246 17.9166C5.0727 17.8299 3.98176 17.5705 3.2057 16.7945C2.42964 16.0184 2.17021 14.9274 2.0835 13.1776" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M14.5832 14.1667L14.4147 13.4593C14.2754 12.8748 13.8323 12.4104 13.2549 12.2441L11.2498 11.6662L11.2496 10.4432C11.9968 9.93883 12.4996 8.99625 12.4996 7.91667C12.4996 6.30583 11.3803 5 9.99959 5C8.61884 5 7.49955 6.30583 7.49955 7.91667C7.49955 8.99625 8.0023 9.93883 8.74959 10.4432L8.74984 11.6662L6.75721 12.2495C6.19773 12.4133 5.76448 12.8575 5.61473 13.4209L5.4165 14.1667" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            Face Swap
-          </a>
-          <a href="uno">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            Flux Uno
-          </a>
-          <a href="gallery">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M5 14.9788C5.10725 16.0691 5.34963 16.803 5.89742 17.3507C6.87997 18.3333 8.46133 18.3333 11.6241 18.3333C14.7868 18.3333 16.3682 18.3333 17.3507 17.3507C18.3333 16.3682 18.3333 14.7868 18.3333 11.6241C18.3333 8.46133 18.3333 6.87997 17.3507 5.89742C16.803 5.34963 16.0691 5.10725 14.9788 5" stroke="currentColor" stroke-width="1.5"/>
-<path d="M1.6665 8.33335C1.6665 5.19065 1.6665 3.61931 2.64281 2.643C3.61913 1.66669 5.19047 1.66669 8.33317 1.66669C11.4758 1.66669 13.0473 1.66669 14.0235 2.643C14.9998 3.61931 14.9998 5.19065 14.9998 8.33335C14.9998 11.476 14.9998 13.0474 14.0235 14.0237C13.0473 15 11.4758 15 8.33317 15C5.19047 15 3.61913 15 2.64281 14.0237C1.6665 13.0474 1.6665 11.476 1.6665 8.33335Z" stroke="currentColor" stroke-width="1.5"/>
-<path d="M1.6665 9.26541C2.18235 9.19982 2.70387 9.16749 3.22626 9.16857C5.43621 9.12774 7.59204 9.73024 9.30909 10.8687C10.9015 11.9245 12.0204 13.3775 12.4998 15" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-<path d="M10.833 5.83331H10.8405" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-            Galeri
-          </a>
-        </nav>
-      </aside>
+        <!-- ===== BODY ===== -->
+        <div class="app">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="side-title">General</div>
+                <nav class="nav">
+                    <a href="/">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        AI Image
+                    </a>
+                    <a href="audio">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7.5 2.5V17.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M5 5.83331V14.1666" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M10 5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M12.5 7.5V12.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path d="M15 5.83331V14.1666" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M17.5 9.16669V10.8334" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <path d="M2.5 9.16669V10.8334" stroke="currentColor" stroke-width="1.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        AI Audio
+                    </a>
+                    <a href="video">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M1.6665 9.16665C1.6665 6.41679 1.6665 5.04185 2.52078 4.18759C3.37505 3.33331 4.74998 3.33331 7.49984 3.33331H8.33317C11.083 3.33331 12.4579 3.33331 13.3123 4.18759C14.1665 5.04185 14.1665 6.41679 14.1665 9.16665V10.8333C14.1665 13.5831 14.1665 14.9581 13.3123 15.8124C12.4579 16.6666 11.083 16.6666 8.33317 16.6666H7.49984C4.74998 16.6666 3.37505 16.6666 2.52078 15.8124C1.6665 14.9581 1.6665 13.5831 1.6665 10.8333V9.16665Z"
+                                stroke="currentColor" stroke-width="1.5" />
+                            <path
+                                d="M14.1665 7.42156L14.2714 7.33499C16.0346 5.88021 16.9162 5.15282 17.6247 5.50404C18.3332 5.85526 18.3332 7.01965 18.3332 9.34844V10.6516C18.3332 12.9804 18.3332 14.1448 17.6247 14.496C16.9162 14.8472 16.0346 14.1199 14.2714 12.665L14.1665 12.5784"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            <path
+                                d="M9.5835 9.16669C10.2739 9.16669 10.8335 8.60704 10.8335 7.91669C10.8335 7.22633 10.2739 6.66669 9.5835 6.66669C8.89314 6.66669 8.3335 7.22633 8.3335 7.91669C8.3335 8.60704 8.89314 9.16669 9.5835 9.16669Z"
+                                stroke="currentColor" stroke-width="1.5" />
+                        </svg>
+                        AI Video
+                    </a>
+                    <a href="faceswap.html" class="active">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M2.0835 6.82229C2.17021 5.07252 2.42964 3.98158 3.2057 3.20551C3.98176 2.42945 5.0727 2.17003 6.82247 2.08331M17.9168 6.82229C17.8301 5.07252 17.5707 3.98158 16.7947 3.20551C16.0186 2.42945 14.9276 2.17003 13.1778 2.08331M13.1778 17.9166C14.9276 17.8299 16.0186 17.5705 16.7947 16.7945C17.5707 16.0184 17.8301 14.9274 17.9168 13.1776M6.82246 17.9166C5.0727 17.8299 3.98176 17.5705 3.2057 16.7945C2.42964 16.0184 2.17021 14.9274 2.0835 13.1776"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M14.5832 14.1667L14.4147 13.4593C14.2754 12.8748 13.8323 12.4104 13.2549 12.2441L11.2498 11.6662L11.2496 10.4432C11.9968 9.93883 12.4996 8.99625 12.4996 7.91667C12.4996 6.30583 11.3803 5 9.99959 5C8.61884 5 7.49955 6.30583 7.49955 7.91667C7.49955 8.99625 8.0023 9.93883 8.74959 10.4432L8.74984 11.6662L6.75721 12.2495C6.19773 12.4133 5.76448 12.8575 5.61473 13.4209L5.4165 14.1667"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Face Swap
+                    </a>
+                    <a href="uno">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M2.5 13.3334L6.22472 9.6086C6.50769 9.32569 6.89148 9.16669 7.29167 9.16669C7.69185 9.16669 8.07564 9.32569 8.35858 9.6086L11.6667 12.9167M11.6667 12.9167L12.9167 14.1667M11.6667 12.9167L13.3081 11.2753C13.591 10.9924 13.9748 10.8334 14.375 10.8334C14.7752 10.8334 15.159 10.9924 15.4419 11.2753L17.5 13.3334"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M12.9167 6.66665C13.1467 6.66665 13.3333 6.4801 13.3333 6.24998C13.3333 6.01986 13.1467 5.83331 12.9167 5.83331M12.9167 6.66665C12.6866 6.66665 12.5 6.4801 12.5 6.24998C12.5 6.01986 12.6866 5.83331 12.9167 5.83331M12.9167 6.66665V5.83331"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                            <path
+                                d="M3.0818 16.456C2.0835 15.2871 2.0835 13.5247 2.0835 9.99998C2.0835 6.4752 2.0835 4.71281 3.0818 3.54395C3.22356 3.37796 3.37815 3.22338 3.54413 3.08162C4.713 2.08331 6.47539 2.08331 10.0002 2.08331C13.5249 2.08331 15.2873 2.08331 16.4562 3.08162C16.6222 3.22338 16.7767 3.37796 16.9185 3.54395C17.9168 4.71281 17.9168 6.4752 17.9168 9.99998C17.9168 13.5247 17.9168 15.2871 16.9185 16.456C16.7767 16.622 16.6222 16.7766 16.4562 16.9183C15.2873 17.9166 13.5249 17.9166 10.0002 17.9166C6.47539 17.9166 4.713 17.9166 3.54413 16.9183C3.37815 16.7766 3.22356 16.622 3.0818 16.456Z"
+                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        Flux Uno
+                    </a>
+                    <a href="gallery">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M5 14.9788C5.10725 16.0691 5.34963 16.803 5.89742 17.3507C6.87997 18.3333 8.46133 18.3333 11.6241 18.3333C14.7868 18.3333 16.3682 18.3333 17.3507 17.3507C18.3333 16.3682 18.3333 14.7868 18.3333 11.6241C18.3333 8.46133 18.3333 6.87997 17.3507 5.89742C16.803 5.34963 16.0691 5.10725 14.9788 5"
+                                stroke="currentColor" stroke-width="1.5" />
+                            <path
+                                d="M1.6665 8.33335C1.6665 5.19065 1.6665 3.61931 2.64281 2.643C3.61913 1.66669 5.19047 1.66669 8.33317 1.66669C11.4758 1.66669 13.0473 1.66669 14.0235 2.643C14.9998 3.61931 14.9998 5.19065 14.9998 8.33335C14.9998 11.476 14.9998 13.0474 14.0235 14.0237C13.0473 15 11.4758 15 8.33317 15C5.19047 15 3.61913 15 2.64281 14.0237C1.6665 13.0474 1.6665 11.476 1.6665 8.33335Z"
+                                stroke="currentColor" stroke-width="1.5" />
+                            <path
+                                d="M1.6665 9.26541C2.18235 9.19982 2.70387 9.16749 3.22626 9.16857C5.43621 9.12774 7.59204 9.73024 9.30909 10.8687C10.9015 11.9245 12.0204 13.3775 12.4998 15"
+                                stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+                            <path d="M10.833 5.83331H10.8405" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Galeri
+                    </a>
+                </nav>
+            </aside>
 
-      <!-- Main -->
-      <main class="main">
-        <div class="faceswap-container">
-            <div class="faceswap-main">
-                <label for="result-upload" class="image-dropzone result">
-                    <div class="placeholder" id="result-placeholder">
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg>
-                        <span class="label">Result</span>
-                    </div>
-                    <img id="result-preview" src="" alt="Result preview" style="display: none;">
-                </label>
-                
-                <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <label for="original-upload" class="image-dropzone source">
-                            <div class="placeholder">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg>
+            <!-- Main -->
+            <main class="main">
+                <div class="faceswap-container">
+                    <div class="faceswap-main">
+                        <label for="result-upload" class="image-dropzone result">
+                            <div class="placeholder" id="result-placeholder">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"
+                                        opacity=".25" />
+                                    <path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z" />
+                                </svg>
+                                <span class="label">Result</span>
                             </div>
-                            <img id="original-preview" src="" alt="Original image preview" style="display: none;">
-                            <span class="label">Original image</span>
-                            <input type="file" id="original-upload" accept="image/*" hidden>
+                            <img id="result-preview" src="" alt="Result preview" style="display: none;">
                         </label>
-                        <label for="face-upload" class="image-dropzone source">
-                            <div class="placeholder">
-                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg>
-                            </div>
-                             <img id="face-preview" src="" alt="Face image preview" style="display: none;">
-                            <span class="label">Face image</span>
-                            <input type="file" id="face-upload" accept="image/*" hidden>
-                        </label>
-                    </div>
 
-                    <div class="faceswap-controls">
-                         <div class="control-row">
-                            <div class="slider-group">
-                                <label for="visibility-slider">visibility</label>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                     <input type="range" id="visibility-slider" min="0" max="1" step="0.1" value="0.8" style="flex-grow:1;">
-                                     <input type="number" id="visibility-num" min="0" max="1" step="0.1" value="0.8" style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                        <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <label for="original-upload" class="image-dropzone source">
+                                    <div class="placeholder">
+                                        <svg viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"
+                                                opacity=".25" />
+                                            <path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z" />
+                                        </svg>
+                                    </div>
+                                    <img id="original-preview" src="" alt="Original image preview"
+                                        style="display: none;">
+                                    <span class="label">Original image</span>
+                                    <input type="file" id="original-upload" accept="image/*" hidden>
+                                </label>
+                                <label for="face-upload" class="image-dropzone source">
+                                    <div class="placeholder">
+                                        <svg viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"
+                                                opacity=".25" />
+                                            <path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z" />
+                                        </svg>
+                                    </div>
+                                    <img id="face-preview" src="" alt="Face image preview" style="display: none;">
+                                    <span class="label">Face image</span>
+                                    <input type="file" id="face-upload" accept="image/*" hidden>
+                                </label>
+                            </div>
+
+                            <div class="faceswap-controls">
+                                <div class="control-row">
+                                    <div class="slider-group">
+                                        <label for="visibility-slider">visibility</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="visibility-slider" min="0" max="1" step="0.1"
+                                                value="0.8" style="flex-grow:1;">
+                                            <input type="number" id="visibility-num" min="0" max="1" step="0.1"
+                                                value="0.8"
+                                                style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                                        </div>
+                                    </div>
+                                    <div class="slider-group">
+                                        <label for="codeformer-slider">codeformer_weight</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="codeformer-slider" min="0" max="1" step="0.1"
+                                                value="0.5" style="flex-grow:1;">
+                                            <input type="number" id="codeformer-num" min="0" max="1" step="0.1"
+                                                value="0.5"
+                                                style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- NEW: Face Index Controls -->
+                                <div class="control-row">
+                                    <div class="slider-group">
+                                        <label for="input-face-index">Input Face Index</label>
+                                        <input type="number" id="input-face-index" min="0" step="1" value="0"
+                                            style="width:100%; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                                    </div>
+                                    <div class="slider-group">
+                                        <label for="source-face-index">Source Face Index</label>
+                                        <input type="number" id="source-face-index" min="0" step="1" value="0"
+                                            style="width:100%; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                                    </div>
+                                </div>
+                                <div class="control-row" style="border-top: 1px solid var(--line); padding-top: 15px;">
+                                    <label for="enableUpscaler"><input type="checkbox" id="enableUpscaler"> Enable
+                                        Upscaler</label>
+                                </div>
+                                <div id="scaleFactorControls" class="control-row" style="display: none;">
+                                    <div class="slider-group">
+                                        <label for="scaleFactorRange">Scale Factor</label>
+                                        <div style="display:flex; align-items:center; gap:10px;">
+                                            <input type="range" id="scaleFactorRange" min="1" max="4" step="0.1"
+                                                value="2" style="flex-grow:1;">
+                                            <input type="number" id="scaleFactorNum" min="1" max="4" step="0.1"
+                                                value="2"
+                                                style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="faceswap-actions">
+                                    <button class="btn danger" id="btnInterrupt" title="Interrupt"
+                                        style="display: none;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            fill="currentColor" viewBox="0 0 16 16">
+                                            <path
+                                                d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                                            <path d="M5 5h6v6H5V5z" />
+                                        </svg>
+                                        Interrupt
+                                    </button>
+                                    <button class="btn primary" id="btnStartSwap">Start face swapping</button>
+                                    <button class="icon-btn" id="btnDownload" title="Download" disabled>
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path
+                                                d="M14.5 9.50004C14.5 9.50004 11.1858 14 9.99994 14C8.81414 14 5.5 9.50004 5.5 9.50004M9.99994 13V1"
+                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                                stroke-linejoin="round" />
+                                            <path
+                                                d="M1 15.0001C1 15.9301 1 16.3951 1.10223 16.7766C1.37963 17.8118 2.18827 18.6205 3.22355 18.8979C3.60505 19.0001 4.07003 19.0001 5 19.0001H15C15.93 19.0001 16.395 19.0001 16.7765 18.8979C17.8117 18.6205 18.6204 17.8118 18.8978 16.7766C19 16.3951 19 15.9301 19 15.0001"
+                                                stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                                                stroke-linejoin="round" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="slider-group">
-                                <label for="codeformer-slider">codeformer_weight</label>
-                                <div style="display:flex; align-items:center; gap:10px;">
-                                    <input type="range" id="codeformer-slider" min="0" max="1" step="0.1" value="0.5" style="flex-grow:1;">
-                                    <input type="number" id="codeformer-num" min="0" max="1" step="0.1" value="0.5" style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
-                                </div>
-                            </div>
-                        </div>
-                        <!-- NEW: Face Index Controls -->
-                        <div class="control-row">
-                            <div class="slider-group">
-                                <label for="input-face-index">Input Face Index</label>
-                                <input type="number" id="input-face-index" min="0" step="1" value="0" style="width:100%; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
-                            </div>
-                            <div class="slider-group">
-                                <label for="source-face-index">Source Face Index</label>
-                                <input type="number" id="source-face-index" min="0" step="1" value="0" style="width:100%; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
-                            </div>
-                        </div>
-                        <div class="control-row" style="border-top: 1px solid var(--line); padding-top: 15px;">
-                            <label for="enableUpscaler"><input type="checkbox" id="enableUpscaler"> Enable Upscaler</label>
-                        </div>
-                        <div id="scaleFactorControls" class="control-row" style="display: none;">
-                             <div class="slider-group">
-                                 <label for="scaleFactorRange">Scale Factor</label>
-                                 <div style="display:flex; align-items:center; gap:10px;">
-                                     <input type="range" id="scaleFactorRange" min="1" max="4" step="0.1" value="2" style="flex-grow:1;">
-                                     <input type="number" id="scaleFactorNum" min="1" max="4" step="0.1" value="2" style="width:70px; border: 1px solid var(--line); border-radius:10px; padding: 8px 12px; background: var(--input-bg); color: var(--text);">
-                                 </div>
-                             </div>
-                        </div>
-                        <div class="faceswap-actions">
-                            <button class="btn primary" id="btnStartSwap">Start face swapping</button>
-                            <button class="icon-btn" id="btnDownload" title="Download" disabled>
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M14.5 9.50004C14.5 9.50004 11.1858 14 9.99994 14C8.81414 14 5.5 9.50004 5.5 9.50004M9.99994 13V1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M1 15.0001C1 15.9301 1 16.3951 1.10223 16.7766C1.37963 17.8118 2.18827 18.6205 3.22355 18.8979C3.60505 19.0001 4.07003 19.0001 5 19.0001H15C15.93 19.0001 16.395 19.0001 16.7765 18.8979C17.8117 18.6205 18.6204 17.8118 18.8978 16.7766C19 16.3951 19 15.9301 19 15.0001" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
-      </main>
     </div>
-  </div>
-<script>
-    // State management for image sources
-    let originalImageDataSource = { type: null, data: null }; // type: 'file', data: File object
-    let faceImageDataSource = { type: null, data: null };
+    <script>
+        // State management for image sources
+        let originalImageDataSource = { type: null, data: null }; // type: 'file', data: File object
+        let faceImageDataSource = { type: null, data: null };
+        let activePollingInterval = null; // Global var for polling interval
 
-    function setupImagePreview(inputId, previewId, dataSource) {
-        const input = document.getElementById(inputId);
-        const preview = document.getElementById(previewId);
-        const placeholder = input.parentElement.querySelector('.placeholder');
+        function setupImagePreview(inputId, previewId, dataSource) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            const placeholder = input.parentElement.querySelector('.placeholder');
 
-        input.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
+            input.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                        if (placeholder) placeholder.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+                    // Update data source
+                    dataSource.type = 'file';
+                    dataSource.data = file;
+                }
+            });
+        }
+        setupImagePreview('original-upload', 'original-preview', originalImageDataSource);
+        setupImagePreview('face-upload', 'face-preview', faceImageDataSource);
+
+        function bindRangeNumber(range, number) {
+            range.addEventListener('input', () => number.value = range.value);
+            number.addEventListener('input', () => range.value = number.value);
+        }
+
+        const visibilitySlider = document.getElementById('visibility-slider');
+        const visibilityNum = document.getElementById('visibility-num');
+        bindRangeNumber(visibilitySlider, visibilityNum);
+
+        const codeformerSlider = document.getElementById('codeformer-slider');
+        const codeformerNum = document.getElementById('codeformer-num');
+        bindRangeNumber(codeformerSlider, codeformerNum);
+
+        // ===== Upscaler UI Logic =====
+        const enableUpscalerCheck = document.getElementById('enableUpscaler');
+        const scaleFactorControlsDiv = document.getElementById('scaleFactorControls');
+        enableUpscalerCheck.addEventListener('change', () => {
+            scaleFactorControlsDiv.style.display = enableUpscalerCheck.checked ? 'flex' : 'none';
+        });
+        const scaleFactorRange = document.getElementById('scaleFactorRange');
+        const scaleFactorNum = document.getElementById('scaleFactorNum');
+        scaleFactorRange.addEventListener('input', () => scaleFactorNum.value = scaleFactorRange.value);
+        scaleFactorNum.addEventListener('input', () => scaleFactorRange.value = scaleFactorNum.value);
+
+        // ===== Helper: File to Base64 =====
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    if (placeholder) placeholder.style.display = 'none';
-                };
                 reader.readAsDataURL(file);
-                // Update data source
-                dataSource.type = 'file';
-                dataSource.data = file;
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // ===== Polling and Result Handling =====
+        const btnStartSwap = document.getElementById('btnStartSwap');
+        const resultPlaceholder = document.getElementById('result-placeholder');
+        const resultPreview = document.getElementById('result-preview');
+        const btnDownload = document.getElementById('btnDownload');
+        const btnInterrupt = document.getElementById('btnInterrupt');
+
+        function resetGenerateButton() {
+            if (activePollingInterval) {
+                clearInterval(activePollingInterval);
+                activePollingInterval = null;
+            }
+            btnStartSwap.disabled = false;
+            btnStartSwap.textContent = 'Start face swapping';
+            btnInterrupt.style.display = 'none';
+        }
+
+        btnInterrupt.addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost:8000/interupt', { method: 'POST' });
+                if (response.ok) {
+                    console.log('Interrupt request sent.');
+                    alert('Proses face swap dihentikan.');
+                    resetGenerateButton();
+                    resultPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg><span class="label">Proses Dibatalkan</span>`;
+                    resultPlaceholder.style.display = 'flex';
+                    resultPreview.style.display = 'none';
+                } else {
+                    alert('Gagal mengirim perintah interupsi.');
+                }
+            } catch (error) {
+                console.error('Interrupt request failed:', error);
+                alert('Gagal menghubungi server untuk interupsi.');
             }
         });
-    }
-    setupImagePreview('original-upload', 'original-preview', originalImageDataSource);
-    setupImagePreview('face-upload', 'face-preview', faceImageDataSource);
 
-    function bindRangeNumber(range, number){
-        range.addEventListener('input', () => number.value = range.value);
-        number.addEventListener('input', () => range.value = number.value);
-    }
+        function pollForResult(promptId) {
+            btnStartSwap.textContent = 'Processing...';
+            btnInterrupt.style.display = 'inline-flex';
+            resultPreview.style.display = 'none';
+            resultPlaceholder.style.display = 'flex';
+            resultPlaceholder.innerHTML = `<div style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="label">Waiting for result...</div>`;
+            btnDownload.disabled = true;
 
-    const visibilitySlider = document.getElementById('visibility-slider');
-    const visibilityNum = document.getElementById('visibility-num');
-    bindRangeNumber(visibilitySlider, visibilityNum);
+            const maxAttempts = 120; // 2 minutes timeout
+            let attempt = 0;
 
-    const codeformerSlider = document.getElementById('codeformer-slider');
-    const codeformerNum = document.getElementById('codeformer-num');
-    bindRangeNumber(codeformerSlider, codeformerNum);
+            activePollingInterval = setInterval(async () => {
+                if (attempt++ >= maxAttempts) {
+                    clearInterval(activePollingInterval);
+                    activePollingInterval = null;
+                    alert('Generation timed out.');
+                    resetGenerateButton();
+                    resultPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg><span class="label">Timeout</span>`;
+                    return;
+                }
 
-    // ===== Upscaler UI Logic =====
-    const enableUpscalerCheck = document.getElementById('enableUpscaler');
-    const scaleFactorControlsDiv = document.getElementById('scaleFactorControls');
-    enableUpscalerCheck.addEventListener('change', () => {
-        scaleFactorControlsDiv.style.display = enableUpscalerCheck.checked ? 'flex' : 'none';
-    });
-    const scaleFactorRange = document.getElementById('scaleFactorRange');
-    const scaleFactorNum = document.getElementById('scaleFactorNum');
-    scaleFactorRange.addEventListener('input', () => scaleFactorNum.value = scaleFactorRange.value);
-    scaleFactorNum.addEventListener('input', () => scaleFactorRange.value = scaleFactorNum.value);
+                try {
+                    const response = await fetch(`http://localhost:8000/history/${promptId}`);
+                    const history = await response.json();
 
-    // ===== Helper: File to Base64 =====
-    function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
-        });
-    }
+                    if (Object.keys(history).length > 0) {
+                        clearInterval(activePollingInterval);
+                        activePollingInterval = null;
+                        console.log("Generation complete:", history);
 
-    // ===== Polling and Result Handling =====
-    const btnStartSwap = document.getElementById('btnStartSwap');
-    const resultPlaceholder = document.getElementById('result-placeholder');
-    const resultPreview = document.getElementById('result-preview');
-    const btnDownload = document.getElementById('btnDownload');
+                        const promptData = history[promptId];
+                        let outputImage = null;
 
-    function resetGenerateButton() {
-        btnStartSwap.disabled = false;
-        btnStartSwap.textContent = 'Start face swapping';
-    }
+                        if (promptData && promptData.outputs) {
+                            for (const nodeId in promptData.outputs) {
+                                const nodeOutput = promptData.outputs[nodeId];
+                                if (nodeOutput.images && nodeOutput.images.length > 0) {
+                                    outputImage = nodeOutput.images[0];
+                                    break;
+                                }
+                            }
+                        }
 
-    function pollForResult(promptId) {
-        btnStartSwap.textContent = 'Processing...';
-        resultPreview.style.display = 'none';
-        resultPlaceholder.style.display = 'flex';
-        resultPlaceholder.innerHTML = `<div style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="label">Waiting for result...</div>`;
-        btnDownload.disabled = true;
+                        if (outputImage && outputImage.filename) {
+                            const { filename, subfolder } = outputImage;
+                            const imageUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
 
-        const maxAttempts = 120; // 2 minutes timeout
-        let attempt = 0;
+                            resultPreview.src = imageUrl;
+                            resultPreview.style.display = 'block';
+                            resultPlaceholder.style.display = 'none';
 
-        const intervalId = setInterval(async () => {
-            if (attempt++ >= maxAttempts) {
-                clearInterval(intervalId);
-                alert('Generation timed out.');
-                resetGenerateButton();
-                resultPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/><path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/></svg><span class="label">Timeout</span>`;
+                            btnDownload.disabled = false;
+                            btnDownload.onclick = async () => {
+                                try {
+                                    const res = await fetch(imageUrl, { mode: 'cors' });
+                                    if (!res.ok) throw new Error('Gagal mengambil file');
+                                    const blob = await res.blob();
+                                    const blobUrl = URL.createObjectURL(blob);
+
+                                    const a = document.createElement('a');
+                                    a.href = blobUrl;
+                                    a.download = filename;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                    URL.revokeObjectURL(blobUrl);
+                                } catch (e) {
+                                    alert('Download gagal: ' + e.message);
+                                }
+                            };
+                        } else {
+                            alert('Generation finished, but no image output was found.');
+                        }
+                        resetGenerateButton();
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    // Continue polling on network error
+                }
+            }, 1000); // Check every second
+        }
+
+
+        // ===== Tombol Generate =====
+        btnStartSwap.addEventListener('click', async () => {
+            if (!originalImageDataSource.data || !faceImageDataSource.data) {
+                alert('Silakan pilih "Original image" dan "Face image" terlebih dahulu.');
                 return;
             }
 
+            btnStartSwap.disabled = true;
+            btnStartSwap.textContent = 'Sending request...';
+
             try {
-                const response = await fetch(`http://localhost:8000/history/${promptId}`);
-                const history = await response.json();
+                const inputImagePromise = fileToBase64(originalImageDataSource.data);
+                const sourceImagePromise = fileToBase64(faceImageDataSource.data);
 
-                if (Object.keys(history).length > 0) {
-                    clearInterval(intervalId);
-                    console.log("Generation complete:", history);
-                    
-                    const promptData = history[promptId];
-                    let outputImage = null;
+                const [inputImageB64, sourceImageB64] = await Promise.all([inputImagePromise, sourceImagePromise]);
 
-                    if (promptData && promptData.outputs) {
-                         for (const nodeId in promptData.outputs) {
-                            const nodeOutput = promptData.outputs[nodeId];
-                            if (nodeOutput.images && nodeOutput.images.length > 0) {
-                                outputImage = nodeOutput.images[0];
-                                break;
-                            }
-                        }
+                const upscaleEnabled = enableUpscalerCheck.checked;
+                const scaleFactor = parseFloat(scaleFactorNum.value || '2');
+
+                const body = {
+                    preset: "face_swap_only",
+                    params: {
+                        input_image_b64: inputImageB64,
+                        source_image_b64: sourceImageB64,
+                        face_boost: {
+                            enabled: true,
+                            visibility: +document.getElementById('visibility-slider').value,
+                            codeformer_weight: +document.getElementById('codeformer-slider').value
+                        },
+                        upscale: {
+                            enabled: upscaleEnabled,
+                            scale: scaleFactor
+                        },
+                        input_faces_index: document.getElementById('input-face-index').value,
+                        source_faces_index: document.getElementById('source-face-index').value
                     }
+                };
 
-                    if (outputImage && outputImage.filename) {
-                        const { filename, subfolder } = outputImage;
-                        const imageUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
-                        
-                        resultPreview.src = imageUrl;
-                        resultPreview.style.display = 'block';
-                        resultPlaceholder.style.display = 'none';
+                const response = await fetch('http://localhost:8000/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
 
-                        btnDownload.disabled = false;
-                        btnDownload.onclick = async () => {
-                          try {
-                            const res = await fetch(imageUrl, { mode: 'cors' }); 
-                            if (!res.ok) throw new Error('Gagal mengambil file');
-                            const blob = await res.blob();
-                            const blobUrl = URL.createObjectURL(blob);
+                const result = await response.json();
 
-                            const a = document.createElement('a');
-                            a.href = blobUrl;
-                            a.download = filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            URL.revokeObjectURL(blobUrl);
-                          } catch (e) {
-                            alert('Download gagal: ' + e.message);
-                          }
-                        };
-                    } else {
-                        alert('Generation finished, but no image output was found.');
-                    }
+                if (response.ok && result.prompt_id) {
+                    console.log('Request successful, prompt ID:', result.prompt_id);
+                    pollForResult(result.prompt_id); // Start polling for the result
+                } else {
+                    console.error('Error:', result);
+                    const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
+                    alert(`Error: ${errorMsg}`);
                     resetGenerateButton();
                 }
+
             } catch (error) {
-                console.error('Polling error:', error);
-                // Continue polling on network error
-            }
-        }, 1000); // Check every second
-    }
-
-
-    // ===== Tombol Generate =====
-    btnStartSwap.addEventListener('click', async () => {
-        if (!originalImageDataSource.data || !faceImageDataSource.data) {
-            alert('Silakan pilih "Original image" dan "Face image" terlebih dahulu.');
-            return;
-        }
-        
-        btnStartSwap.disabled = true;
-        btnStartSwap.textContent = 'Sending request...';
-
-        try {
-            const inputImagePromise = fileToBase64(originalImageDataSource.data);
-            const sourceImagePromise = fileToBase64(faceImageDataSource.data);
-
-            const [inputImageB64, sourceImageB64] = await Promise.all([inputImagePromise, sourceImagePromise]);
-
-            const upscaleEnabled = enableUpscalerCheck.checked;
-            const scaleFactor = parseFloat(scaleFactorNum.value || '2');
-
-            const body = {
-                preset: "face_swap_only",
-                params: {
-                    input_image_b64: inputImageB64,
-                    source_image_b64: sourceImageB64,
-                    face_boost: {
-                        enabled: true,
-                        visibility: +document.getElementById('visibility-slider').value,
-                        codeformer_weight: +document.getElementById('codeformer-slider').value
-                    },
-                    upscale: {
-                        enabled: upscaleEnabled,
-                        scale: scaleFactor
-                    },
-                    input_faces_index: document.getElementById('input-face-index').value,
-                    source_faces_index: document.getElementById('source-face-index').value
-                }
-            };
-
-            const response = await fetch('http://localhost:8000/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.prompt_id) {
-                console.log('Request successful, prompt ID:', result.prompt_id);
-                pollForResult(result.prompt_id); // Start polling for the result
-            } else {
-                console.error('Error:', result);
-                const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
-                alert(`Error: ${errorMsg}`);
+                console.error('Request failed:', error);
+                alert('Gagal menghubungi server atau mengonversi gambar.');
                 resetGenerateButton();
             }
+        });
 
-        } catch (error) {
-            console.error('Request failed:', error);
-            alert('Gagal menghubungi server atau mengonversi gambar.');
-            resetGenerateButton();
+        // ===== Dark Mode Toggle =====
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
+        const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+        function setTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.innerHTML = sunIcon;
+            } else {
+                themeIcon.innerHTML = moonIcon;
+            }
         }
-    });
 
-    // ===== Dark Mode Toggle =====
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
-    const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.body.dataset.theme || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        });
 
-    function setTheme(theme) {
-        document.body.dataset.theme = theme;
-        localStorage.setItem('theme', theme);
-        if (theme === 'dark') {
-            themeIcon.innerHTML = sunIcon;
+        // Load saved theme from localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (prefersDark) {
+            setTheme('dark');
         } else {
-            themeIcon.innerHTML = moonIcon;
+            setTheme('light');
         }
-    }
-
-    themeToggleBtn.addEventListener('click', () => {
-        const currentTheme = document.body.dataset.theme || 'light';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
-    });
-
-    // Load saved theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else if (prefersDark) {
-        setTheme('dark');
-    } else {
-        setTheme('light');
-    }
-</script>
+    </script>
 </body>
-</html>
 
+</html>

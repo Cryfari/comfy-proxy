@@ -123,6 +123,11 @@ def _build_url(request: Request, category: str, filename: str) -> str:
     # URL ke endpoint file langsung
     return str(request.url_for("get_media_file", category=category, filename=filename))
 
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    # Pastikan Anda membuat folder assets/icon di dalam folder static
+    return FileResponse('static/assets/icon/favicon.ico')
+
 @app.get("/")
 async def image():
     # return html page
@@ -315,11 +320,31 @@ async def generate(req: GenerateRequest):
     CLIENT_ID = "comfy-proxy"
 
     prompt_id = str(uuid.uuid4())
-    r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
+    # r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
 
-    resp = r.json()
-    prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
+    # resp = r.json()
+    # prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
+    want_save = SAVE_WORKFLOW or bool(req.params.get("save_workflow", False))
+    if want_save:
+        day = now_jkt_iso()[:10]  # YYYY-MM-DD
+        path = os.path.join(RUNS_DIR, day, f"{req.preset}-{prompt_id}.workflow.json")
+        record = {
+            "meta": {
+                "preset": req.preset,
+                "timestamp": now_jkt_iso(),
+                "client_id": CLIENT_ID,
+                "comfy_url": COMFY_URL,
+                "prompt_id": prompt_id,
+                "version": 1
+            },
+            "params": req.params,   # simpan payload params untuk audit/repro
+            "workflow": wf          # exactly what we sent to /prompt
+        }
+        save_json_atomic(path, record)
+        # Tampilkan path di respons (biar FE bisa download/lihat)
+        # resp["workflow_path"] = path
 
+    return {"prompt_id": prompt_id, "saved_workflow": path}
     return {"prompt_id": prompt_id}
 
 @app.get("/history")
@@ -339,19 +364,6 @@ async def image(filename: str, subfolder: str = Query("")):
         raise HTTPException(400, "Invalid filename")
     r = await comfy_client.comfy_get("/view", params={"filename": filename, "subfolder": subfolder})
     return Response(content=r.content, media_type=r.headers.get("Content-Type", "image/png"))
-
-@app.get("/all_generated")
-async def all_generated():
-    # get file name list from folder
-    filenames = []
-    for root, dirs, files in os.walk("../Comfyui"):
-        for file in files:
-            if file.endswith(".workflow.json"):
-                filenames.append(os.path.join(root, file))
-    
-
-    r = await comfy_client.comfy_get("/all_generated")
-    return r.json
 
 
 @app.get("/models")
