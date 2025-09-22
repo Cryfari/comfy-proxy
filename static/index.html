@@ -832,11 +832,10 @@
                         <input type="number" min="0" max="1" step="0.05" value="0.8" class="input lora-strength-num" />
                         <button type="button" class="icon-btn lora-remove" title="Hapus LoRA"
                           style="border:1px solid var(--line)">
-                          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M7 7h10v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7Z" opacity=".2" />
-                            <path d="M6 7h12M10 11v6m4-6v6M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" stroke="currentColor"
-                              stroke-width="1.4" fill="none" />
+                          <svg width="16" height="16" viewBox="0 0 64 80" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M24 0L20 4H0V12H4V72C4 74.0889 4.76532 76.2184 6.27344 77.7266C7.78156 79.2347 9.91111 80 12 80H52C54.0889 80 56.2184 79.2347 57.7266 77.7266C59.2347 76.2184 60 74.0889 60 72V12H64V4H44L40 0H24ZM12 12H52V72H12V12ZM20 20V64H28V20H20ZM36 20V64H44V20H36Z"/>
                           </svg>
+
                         </button>
                       </div>
                     </template>
@@ -868,20 +867,60 @@
                         style="display:grid; grid-template-columns:1fr 120px 120px 40px; gap:8px; align-items:center">
                         <select class="input cn-preproc">
                           <option value="none">none</option>
-                          <option value="CannyEdgePreprocessor">CannyEdgePreprocessor</option>
-                          <option value="DepthAnythingPreprocessor">DepthAnythingPreprocessor</option>
-                          <option value="OpenposePreprocessor">OpenposePreprocessor</option>
-                          <option value="LineartStandardPreprocessor">LineartStandardPreprocessor</option>
+<option value="AnimeFace_SemSegPreprocessor">AnimeFace_SemSegPreprocessor</option>
+<option value="AnyLineArtPreprocessor_aux">AnyLineArtPreprocessor_aux</option>
+<option value="BinaryPreprocessor">BinaryPreprocessor</option>
+<option value="CannyEdgePreprocessor">CannyEdgePreprocessor</option>
+<option value="ColorPreprocessor">ColorPreprocessor</option>
+<option value="DensePosePreprocessor">DensePosePreprocessor</option>
+<option value="DepthAnythingPreprocessor">DepthAnythingPreprocessor</option>
+<option value="Zoe_DepthAnythingPreprocessor">Zoe_DepthAnythingPreprocessor</option>
+<option value="DepthAnythingV2Preprocessor">DepthAnythingV2Preprocessor</option>
+<option value="DSINE-NormalMapPreprocessor">DSINE-NormalMapPreprocessor</option>
+<option value="DWPreprocessor">DWPreprocessor</option>
+<option value="AnimalPosePreprocessor">AnimalPosePreprocessor</option>
+<option value="HEDPreprocessor">HEDPreprocessor</option>
+<option value="FakeScribblePreprocessor">FakeScribblePreprocessor</option>
+<option value="LeReS-DepthMapPreprocessor">LeReS-DepthMapPreprocessor</option>
+<option value="LineArtPreprocessor">LineArtPreprocessor</option>
+<option value="AnimeLineArtPreprocessor">AnimeLineArtPreprocessor</option>
+<option value="LineartStandardPreprocessor">LineartStandardPreprocessor</option>
+<option value="Manga2Anime_LineArt_Preprocessor">Manga2Anime_LineArt_Preprocessor</option>
+<option value="MediaPipe-FaceMeshPreprocessor">MediaPipe-FaceMeshPreprocessor</option>
+<option value="MeshGraphormer-DepthMapPreprocessor">MeshGraphormer-DepthMapPreprocessor</option>
+<option value="Metric3D-DepthMapPreprocessor">Metric3D-DepthMapPreprocessor</option>
+<option value="Metric3D-NormalMapPreprocessor">Metric3D-NormalMapPreprocessor</option>
+<option value="MiDaS-NormalMapPreprocessor">MiDaS-NormalMapPreprocessor</option>
+<option value="MiDaS-DepthMapPreprocessor">MiDaS-DepthMapPreprocessor</option>
+<option value="M-LSDPreprocessor">M-LSDPreprocessor</option>
+<option value="BAE-NormalMapPreprocessor">BAE-NormalMapPreprocessor</option>
+<option value="OneFormer-COCO-SemSegPreprocessor">OneFormer-COCO-SemSegPreprocessor</option>
+<option value="OneFormer-ADE20K-SemSegPreprocessor">OneFormer-ADE20K-SemSegPreprocessor</option>
+<option value="OpenposePreprocessor">OpenposePreprocessor</option>
+<option value="PiDiNetPreprocessor">PiDiNetPreprocessor</option>
+<option value="PyraCannyPreprocessor">PyraCannyPreprocessor</option>
+<option value="ImageLuminanceDetector">ImageLuminanceDetector</option>
+<option value="ImageIntensityDetector">ImageIntensityDetector</option>
+<option value="ScribblePreprocessor">ScribblePreprocessor</option>
+<option value="Scribble_XDoG_Preprocessor">Scribble_XDoG_Preprocessor</option>
+<option value="Scribble_PiDiNet_Preprocessor">Scribble_PiDiNet_Preprocessor</option>
+<option value="SAMPreprocessor">SAMPreprocessor</option>
+<option value="ShufflePreprocessor">ShufflePreprocessor</option>
+<option value="TEEDPreprocessor">TEEDPreprocessor</option>
+<option value="TilePreprocessor">TilePreprocessor</option>
+<option value="TTPlanet_TileGF_Preprocessor">TTPlanet_TileGF_Preprocessor</option>
+<option value="TTPlanet_TileSimple_Preprocessor">TTPlanet_TileSimple_Preprocessor</option>
+<option value="UniFormer-SemSegPreprocessor">UniFormer-SemSegPreprocessor</option>
+<option value="SemSegPreprocessor">SemSegPreprocessor</option>
+<option value="Zoe-DepthMapPreprocessor">Zoe-DepthMapPreprocessor</option>
                         </select>
                         <input type="number" class="input cn-res" min="256" step="32" value="512"
                           placeholder="Resolution" />
                         <input type="file" class="input cn-image" accept="image/*" />
                         <button type="button" class="icon-btn cn-remove" title="Hapus ControlNet"
                           style="border:1px solid var(--line)">
-                          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M7 7h10v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7Z" opacity=".2" />
-                            <path d="M6 7h12M10 11v6m4-6v6M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" stroke="currentColor"
-                              stroke-width="1.4" fill="none" />
+                          <svg width="16" height="16" viewBox="0 0 64 80" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M24 0L20 4H0V12H4V72C4 74.0889 4.76532 76.2184 6.27344 77.7266C7.78156 79.2347 9.91111 80 12 80H52C54.0889 80 56.2184 79.2347 57.7266 77.7266C59.2347 76.2184 60 74.0889 60 72V12H64V4H44L40 0H24ZM12 12H52V72H12V12ZM20 20V64H28V20H20ZM36 20V64H44V20H36Z"/>
                           </svg>
                         </button>
                       </div>
@@ -890,10 +929,52 @@
                     <div style="display:flex; gap:8px">
                       <select id="cnPreprocInput" class="input" style="flex:1">
                         <option value="none">none</option>
-                        <option value="CannyEdgePreprocessor">CannyEdgePreprocessor</option>
-                        <option value="DepthAnythingPreprocessor">DepthAnythingPreprocessor</option>
-                        <option value="OpenposePreprocessor">OpenposePreprocessor</option>
-                        <option value="LineartStandardPreprocessor">LineartStandardPreprocessor</option>
+<option value="AnimeFace_SemSegPreprocessor">AnimeFace_SemSegPreprocessor</option>
+<option value="AnyLineArtPreprocessor_aux">AnyLineArtPreprocessor_aux</option>
+<option value="BinaryPreprocessor">BinaryPreprocessor</option>
+<option value="CannyEdgePreprocessor">CannyEdgePreprocessor</option>
+<option value="ColorPreprocessor">ColorPreprocessor</option>
+<option value="DensePosePreprocessor">DensePosePreprocessor</option>
+<option value="DepthAnythingPreprocessor">DepthAnythingPreprocessor</option>
+<option value="Zoe_DepthAnythingPreprocessor">Zoe_DepthAnythingPreprocessor</option>
+<option value="DepthAnythingV2Preprocessor">DepthAnythingV2Preprocessor</option>
+<option value="DSINE-NormalMapPreprocessor">DSINE-NormalMapPreprocessor</option>
+<option value="DWPreprocessor">DWPreprocessor</option>
+<option value="AnimalPosePreprocessor">AnimalPosePreprocessor</option>
+<option value="HEDPreprocessor">HEDPreprocessor</option>
+<option value="FakeScribblePreprocessor">FakeScribblePreprocessor</option>
+<option value="LeReS-DepthMapPreprocessor">LeReS-DepthMapPreprocessor</option>
+<option value="LineArtPreprocessor">LineArtPreprocessor</option>
+<option value="AnimeLineArtPreprocessor">AnimeLineArtPreprocessor</option>
+<option value="LineartStandardPreprocessor">LineartStandardPreprocessor</option>
+<option value="Manga2Anime_LineArt_Preprocessor">Manga2Anime_LineArt_Preprocessor</option>
+<option value="MediaPipe-FaceMeshPreprocessor">MediaPipe-FaceMeshPreprocessor</option>
+<option value="MeshGraphormer-DepthMapPreprocessor">MeshGraphormer-DepthMapPreprocessor</option>
+<option value="Metric3D-DepthMapPreprocessor">Metric3D-DepthMapPreprocessor</option>
+<option value="Metric3D-NormalMapPreprocessor">Metric3D-NormalMapPreprocessor</option>
+<option value="MiDaS-NormalMapPreprocessor">MiDaS-NormalMapPreprocessor</option>
+<option value="MiDaS-DepthMapPreprocessor">MiDaS-DepthMapPreprocessor</option>
+<option value="M-LSDPreprocessor">M-LSDPreprocessor</option>
+<option value="BAE-NormalMapPreprocessor">BAE-NormalMapPreprocessor</option>
+<option value="OneFormer-COCO-SemSegPreprocessor">OneFormer-COCO-SemSegPreprocessor</option>
+<option value="OneFormer-ADE20K-SemSegPreprocessor">OneFormer-ADE20K-SemSegPreprocessor</option>
+<option value="OpenposePreprocessor">OpenposePreprocessor</option>
+<option value="PiDiNetPreprocessor">PiDiNetPreprocessor</option>
+<option value="PyraCannyPreprocessor">PyraCannyPreprocessor</option>
+<option value="ImageLuminanceDetector">ImageLuminanceDetector</option>
+<option value="ImageIntensityDetector">ImageIntensityDetector</option>
+<option value="ScribblePreprocessor">ScribblePreprocessor</option>
+<option value="Scribble_XDoG_Preprocessor">Scribble_XDoG_Preprocessor</option>
+<option value="Scribble_PiDiNet_Preprocessor">Scribble_PiDiNet_Preprocessor</option>
+<option value="SAMPreprocessor">SAMPreprocessor</option>
+<option value="ShufflePreprocessor">ShufflePreprocessor</option>
+<option value="TEEDPreprocessor">TEEDPreprocessor</option>
+<option value="TilePreprocessor">TilePreprocessor</option>
+<option value="TTPlanet_TileGF_Preprocessor">TTPlanet_TileGF_Preprocessor</option>
+<option value="TTPlanet_TileSimple_Preprocessor">TTPlanet_TileSimple_Preprocessor</option>
+<option value="UniFormer-SemSegPreprocessor">UniFormer-SemSegPreprocessor</option>
+<option value="SemSegPreprocessor">SemSegPreprocessor</option>
+<option value="Zoe-DepthMapPreprocessor">Zoe-DepthMapPreprocessor</option>
                       </select>
                       <input id="cnResInput" type="number" min="256" step="32" value="512" class="input"
                         style="width:100px" />
