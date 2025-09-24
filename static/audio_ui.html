@@ -745,6 +745,7 @@
   <script>
     let uploadedAudioFilename = null;
     let activePollingInterval = null; // Global var for polling interval
+    const currentOrigin = window.location.origin;
 
     // ===== Helper: bind range <-> number =====
     function bindRangeNumber(range, number) {
@@ -779,7 +780,7 @@
         audioFileLabel.querySelector('span').textContent = 'Uploading...';
 
         try {
-          const response = await fetch('http://localhost:8000/upload/audio', {
+          const response = await fetch(currentOrigin+'/upload/audio', {
             method: 'POST',
             body: formData,
           });
@@ -846,7 +847,7 @@
     const btnInterrupt = document.getElementById('btnInterrupt');
     btnInterrupt.addEventListener('click', async () => {
       try {
-        const response = await fetch('http://localhost:8000/interupt', { method: 'POST' }); // Correct endpoint
+        const response = await fetch(currentOrigin+'/interupt', { method: 'POST' }); // Correct endpoint
         if (response.ok) {
           console.log('Interrupt request sent.');
           alert('Proses generasi dihentikan.');
@@ -981,7 +982,7 @@
 
         console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
 
-        const response = await fetch('http://localhost:8000/generate', {
+        const response = await fetch(currentOrigin+'/generate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

@@ -339,6 +339,8 @@
   </div>
 
 <script>
+
+    const currentOrigin = window.location.origin;
     document.addEventListener('DOMContentLoaded', () => {
         const galleryGrid = document.getElementById('galleryGrid');
         const filterButtons = document.querySelectorAll('.filter-nav button');
@@ -390,7 +392,7 @@
         // Fungsi untuk mengambil dan menampilkan media
         async function loadMedia() {
             try {
-                const response = await fetch('http://localhost:8000/history/media');
+                const response = await fetch(currentOrigin+'/history/media');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }

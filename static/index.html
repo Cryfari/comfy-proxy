@@ -995,6 +995,7 @@
   <script>
     let uploadedImageB64 = null; // Variabel untuk menyimpan gambar Base64
     let activePollingInterval = null; // Variabel global untuk interval polling
+    const currentOrigin = window.location.origin;
 
     // ===== Helper: bind range <-> number =====
     function bindRangeNumber(range, number) {
@@ -1100,7 +1101,7 @@
     // Fungsi untuk memuat daftar LoRA dari server
     async function loadLoras() {
       try {
-        const response = await fetch('http://localhost:8000/models/loras');
+        const response = await fetch(currentOrigin+'/models/loras');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -1285,7 +1286,7 @@
     const btnInterrupt = document.getElementById('btnInterrupt');
     btnInterrupt.addEventListener('click', async () => {
       try {
-        const response = await fetch('http://localhost:8000/interrupt', { method: 'POST' });
+        const response = await fetch(currentOrigin+'/interrupt', { method: 'POST' });
         if (response.ok) {
           console.log('Interrupt request sent.');
           alert('Proses generasi dihentikan.');
@@ -1446,7 +1447,7 @@
 
         console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
 
-        const response = await fetch('http://localhost:8000/generate', {
+        const response = await fetch(currentOrigin+'/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)

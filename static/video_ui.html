@@ -386,6 +386,8 @@
     let uploadedImageFilename = null;
     let activePollingInterval = null;
 
+    const currentOrigin = window.location.origin;
+
     // ===== Helper: bind range <-> number =====
     function bindRangeNumber(range, number){
       if (!range || !number) return;
@@ -435,7 +437,7 @@
         fileInputLabel.textContent = 'Uploading...';
 
         try {
-            const response = await fetch('http://localhost:8000/upload/image', {
+            const response = await fetch(currentOrigin+'/upload/image', {
                 method: 'POST',
                 body: formData,
             });
@@ -510,7 +512,7 @@
 
     btnInterrupt.addEventListener('click', async () => {
         try {
-            const response = await fetch('http://localhost:8000/interupt', { method: 'POST' });
+            const response = await fetch(currentOrigin+'/interupt', { method: 'POST' });
             if (response.ok) {
                 console.log('Interrupt request sent.');
                 alert('Proses dihentikan.');
@@ -648,7 +650,7 @@
 
             console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
 
-            const response = await fetch('http://localhost:8000/generate', {
+            const response = await fetch(currentOrigin+'/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)

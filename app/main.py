@@ -320,10 +320,10 @@ async def generate(req: GenerateRequest):
     CLIENT_ID = "comfy-proxy"
 
     prompt_id = str(uuid.uuid4())
-    # r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
+    r = await comfy_client.comfy_post("/prompt", json={"prompt": wf, "client_id": CLIENT_ID})
 
-    # resp = r.json()
-    # prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
+    resp = r.json()
+    prompt_id = resp.get("prompt_id") or resp.get("promptId") or str(uuid4())
     want_save = SAVE_WORKFLOW or bool(req.params.get("save_workflow", False))
     if want_save:
         day = now_jkt_iso()[:10]  # YYYY-MM-DD

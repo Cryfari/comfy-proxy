@@ -622,6 +622,7 @@
         let originalImageDataSource = { type: null, data: null }; // type: 'file', data: File object
         let faceImageDataSource = { type: null, data: null };
         let activePollingInterval = null; // Global var for polling interval
+        const currentOrigin = window.location.origin;
 
         function setupImagePreview(inputId, previewId, dataSource) {
             const input = document.getElementById(inputId);
@@ -700,7 +701,7 @@
 
         btnInterrupt.addEventListener('click', async () => {
             try {
-                const response = await fetch('http://localhost:8000/interupt', { method: 'POST' });
+                const response = await fetch(currentOrigin+'/interupt', { method: 'POST' });
                 if (response.ok) {
                     console.log('Interrupt request sent.');
                     alert('Proses face swap dihentikan.');
@@ -838,7 +839,7 @@
                     }
                 };
 
-                const response = await fetch('http://localhost:8000/generate', {
+                const response = await fetch(currentOrigin+'/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
