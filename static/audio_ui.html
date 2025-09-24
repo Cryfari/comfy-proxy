@@ -900,7 +900,7 @@
         }
 
         try {
-          const response = await fetch(`http://localhost:8000/history/${promptId}`);
+          const response = await fetch(currentOrigin+`/history/${promptId}`);
           const history = await response.json();
 
           if (Object.keys(history).length > 0) {
@@ -921,7 +921,7 @@
 
               if (outputAudio && outputAudio.filename) {
                 const { filename, subfolder } = outputAudio;
-                const audioUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
+                const audioUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
 
                 resultContainer.innerHTML = `
                                 <p style="margin-bottom:8px;"><strong>Hasil Generasi:</strong></p>

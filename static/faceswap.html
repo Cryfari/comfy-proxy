@@ -740,7 +740,7 @@
                 }
 
                 try {
-                    const response = await fetch(`http://localhost:8000/history/${promptId}`);
+                    const response = await fetch(currentOrigin+`/history/${promptId}`);
                     const history = await response.json();
 
                     if (Object.keys(history).length > 0) {
@@ -763,7 +763,7 @@
 
                         if (outputImage && outputImage.filename) {
                             const { filename, subfolder } = outputImage;
-                            const imageUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
+                            const imageUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
 
                             resultPreview.src = imageUrl;
                             resultPreview.style.display = 'block';

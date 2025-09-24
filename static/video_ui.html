@@ -549,7 +549,7 @@
             }
 
             try {
-                const response = await fetch(`http://localhost:8000/history/${promptId}`);
+                const response = await fetch(currentOrigin+`/history/${promptId}`);
                 const history = await response.json();
 
                 if (Object.keys(history).length > 0) {
@@ -569,7 +569,7 @@
 
                     if (outputVideo && outputVideo.filename) {
                         const { filename, subfolder } = outputVideo;
-                        const videoUrl = `http://localhost:8000/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || 'video')}`;
+                        const videoUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || 'video')}`;
                         
                         videoPreview.src = videoUrl;
                         videoPreview.style.display = 'block';
