@@ -126,32 +126,32 @@ def _build_url(request: Request, category: str, filename: str) -> str:
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     # Pastikan Anda membuat folder assets/icon di dalam folder static
-    return FileResponse('static/assets/icon/favicon.ico')
+    return FileResponse('comfy-proxy/static/assets/icon/favicon.ico')
 
 @app.get("/")
 async def image():
     # return html page
-    return FileResponse("static/index.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/index.html", media_type="text/html")
 
 @app.get("/video")
 async def video():
-    return FileResponse("static/video_ui.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/video_ui.html", media_type="text/html")
 
 @app.get("/audio")
 async def audio():
-    return FileResponse("static/audio_ui.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/audio_ui.html", media_type="text/html")
 
 @app.get("/faceswap")
 async def face_swap():
-    return FileResponse("static/faceswap.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/faceswap.html", media_type="text/html")
 
 @app.get("/uno")
 async def uno():
-    return FileResponse("static/flux_uno.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/flux_uno.html", media_type="text/html")
 
 @app.get("/gallery")
 async def gallery():
-    return FileResponse("static/gallery.html", media_type="text/html")
+    return FileResponse("comfy-proxy/static/gallery.html", media_type="text/html")
 
 @app.websocket("/ws")
 async def ws_proxy(
