@@ -97,8 +97,46 @@ def _wire_createvideo_savevideo(wf, images_ref):
 def apply(workflow: dict, params: dict) -> dict:
     wf = copy.deepcopy(workflow)
 
-
+    # --- Start LoRA Application ---
     unet_id, unet = _first(wf, "UNETLoader")
+    clip_id, clip = _first(wf, "CLIPLoader")
+    if not unet or not clip:
+        # Some workflows might not have these, proceed without error
+        pass
+    else:
+        loras = params.get("loras", []) or []
+        last_model = _out(unet_id, 0)
+        last_clip = _out(clip_id, 0)
+
+        for lora in loras:
+            lora_loader_id = _next_id(wf)
+            wf[lora_loader_id] = {
+                "inputs": {
+                    "lora_name": lora.get("lora_name"),
+                    "strength_model": float(lora.get("strength_model", 0.8)),
+                    "strength_clip": float(lora.get("strength_clip", 0.8)),
+                    "model": last_model,
+                    "clip": last_clip,
+                },
+                "class_type": "LoraLoader",
+                "_meta": {"title": f"LoRA: {lora.get('lora_name')}"}
+            }
+            last_model = _out(lora_loader_id, 0)
+            last_clip = _out(lora_loader_id, 1)
+
+        # Re-wire final model and clip
+        ms_id, ms = _first(wf, "ModelSamplingSD3")
+        ks_id, ks = _first(wf, "KSampler")
+        if ms:
+            ms["inputs"]["model"] = last_model
+        elif ks:
+            ks["inputs"]["model"] = last_model
+
+        for nid, node in _find(wf, "CLIPTextEncode"):
+            node["inputs"]["clip"] = last_clip
+    # --- End LoRA Application ---
+
+
     if unet and "model" in params:
         unet["inputs"]["unet_name"] = params["model"]
         
@@ -113,7 +151,10 @@ def apply(workflow: dict, params: dict) -> dict:
     # (2) WanImageToVideo (latent config)
     lat_id, lat = _first(wf, "WanImageToVideo")
     if not lat:
-        raise RuntimeError("WanImageToVideo not found")
+        # Fallback for different latent nodes
+        lat_id, lat = _first(wf, "Wan22ImageToVideoLatent")
+        if not lat:
+            raise RuntimeError("Latent generation node not found")
 
     if "width" in params:  lat["inputs"]["width"]  = int(params["width"])
     if "height" in params: lat["inputs"]["height"] = int(params["height"])
@@ -303,3 +344,4 @@ def _apply_video_upscale(wf, params):
         sv["inputs"]["images"] = _out(mix_id, 0)
     print('sv input', sv['inputs'])
     return wf
+

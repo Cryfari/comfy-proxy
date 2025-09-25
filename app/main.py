@@ -345,7 +345,6 @@ async def generate(req: GenerateRequest):
         # resp["workflow_path"] = path
 
     return {"prompt_id": prompt_id, "saved_workflow": path}
-    return {"prompt_id": prompt_id}
 
 @app.get("/history")
 async def history():
