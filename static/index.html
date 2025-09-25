@@ -305,6 +305,17 @@
       color: #fff;
     }
 
+     .example-btn {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-weight: 500;
+    }
+    .example-btn:hover {
+        background: var(--chip-hover-bg);
+        color: var(--text);
+    }
+
     /* ===== Controls panel ===== */
     .panel {
       padding: 14px;
@@ -656,7 +667,14 @@
               </div>
               <div class="bd">
                 <textarea id="prompt" placeholder="Masukan Text di sini..."></textarea>
-                <label class="chip" for="fileInput">
+                <div class="example-section" style="margin-top: 10px;">
+                    <div class="muted" style="margin-bottom: 8px;">Atau coba contoh ini:</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn example-btn" data-example="cyberpunk">Cyberpunk City</button>
+                        <button class="btn example-btn" data-example="forest">Enchanted Forest</button>
+                    </div>
+                </div>
+                <label class="chip" for="fileInput" style="margin-top: 12px;">
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M16.5 6.5a4.5 4.5 0 0 1 0 6.36l-6.36 6.36a4.5 4.5 0 1 1-6.36-6.36l3.18-3.18" fill="none"
                       stroke="currentColor" stroke-width="1.5" />
@@ -1443,6 +1461,22 @@
                 modelSelector.innerHTML = '<option value="" disabled selected>Gagal memuat model</option>';
             }
         }
+
+        // ===== Example Prompts =====
+        const promptText = document.getElementById('prompt');
+        const examples = {
+            'cyberpunk': 'a photograph of a futuristic cyberpunk city street at night, neon signs reflecting on wet pavement, flying vehicles, high detail, cinematic lighting',
+            'forest': 'a beautiful enchanted forest with glowing mushrooms and ancient trees, a mystical stream flowing through it, fantasy, highly detailed, digital painting'
+        };
+
+        document.querySelectorAll('.example-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const exampleId = e.target.dataset.example;
+                if (examples[exampleId]) {
+                    promptText.value = examples[exampleId];
+                }
+            });
+        });
 
         // ===== Tombol Generate (Tunggal & Terpusat) =====
         document.getElementById('btnGenerate').addEventListener('click', async () => {

@@ -120,6 +120,17 @@
     }
     .btn.primary{background:var(--brand); color:#fff}
     .btn.danger { background: var(--danger); color: #fff; }
+     .example-btn {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-weight: 500;
+    }
+    .example-btn:hover {
+        background: var(--chip-hover-bg);
+        color: var(--text);
+    }
+
     .icon-btn{
       width:42px; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--panel); cursor:pointer;
       display:grid; place-items:center;
@@ -285,7 +296,14 @@
               <div class="bd" style="gap: 15px;">
                 <textarea id="prompt-pos" placeholder="prompt Positif"></textarea>
                 <textarea id="prompt-neg" placeholder="prompt Negatif"></textarea>
-                <label class="chip" for="fileInput" id="fileInputLabel">
+                 <div class="example-section" style="margin-top: 10px;">
+                    <div class="muted" style="margin-bottom: 8px;">Atau coba contoh ini:</div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn example-btn" data-example="car">Cinematic Car</button>
+                        <button class="btn example-btn" data-example="bird">Flying Bird</button>
+                    </div>
+                </div>
+                <label class="chip" for="fileInput" id="fileInputLabel" style="margin-top: 12px;">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6.5a4.5 4.5 0 0 1 0 6.36l-6.36 6.36a4.5 4.5 0 1 1-6.36-6.36l3.18-3.18" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 16l8-8a2.5 2.5 0 1 1 3.54 3.54L11.5 19.58"/></svg>
                   <span>Tambahkan Foto Referensi (i2v)</span>
                 </label>
@@ -594,6 +612,31 @@
             return items;
         }
 
+        // ===== Example Prompts =====
+        const promptPos = document.getElementById('prompt-pos');
+        const promptNeg = document.getElementById('prompt-neg');
+        
+        const examples = {
+            'car': {
+                pos: 'cinematic shot of a silver sports car driving on a winding coastal road at sunset, beautiful ocean view, high detail, 8K',
+                neg: 'blurry, cartoon, watermark, text, signature, ugly, deformed'
+            },
+            'bird': {
+                pos: 'A majestic eagle soaring through a cloudy sky, wings spread wide, realistic, high resolution, dramatic lighting',
+                neg: ' poorly drawn, extra wings, cartoonish, low quality, jpeg artifacts'
+            }
+        };
+
+        document.querySelectorAll('.example-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const exampleId = e.target.dataset.example;
+                if (examples[exampleId]) {
+                    promptPos.value = examples[exampleId].pos;
+                    promptNeg.value = examples[exampleId].neg;
+                }
+            });
+        });
+
         // ===== Data Collection =====
         function collectUpscale(){
         const isEnabled = document.getElementById('enableUpscaler').checked;
@@ -852,3 +895,4 @@
 </script>
 </body>
 </html>
+
