@@ -157,7 +157,8 @@ def apply(workflow: dict, params: dict) -> dict:
         cve_id = _ensure_clip_vision(wf, start_ref)
         lat["inputs"]["clip_vision_output"] = _out(cve_id, 0)
         ul_id, ul = _first(wf, "UNETLoader")
-        ul["inputs"]["unet_name"] = "wan2.1_i2v_720p_14B_fp16.safetensors"
+        if ul and "model" not in params:
+            ul["inputs"]["unet_name"] = "wan2.1_i2v_720p_14B_fp16.safetensors"
     else:
         # T2V murni → HAPUS keys ini agar tidak [null,0]
         lat["inputs"].pop("start_image", None)

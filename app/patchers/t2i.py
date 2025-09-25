@@ -230,9 +230,13 @@ def apply(workflow: dict, params: dict) -> dict:
     if empty_latent_node:
         empty_latent_node["inputs"].update({"width": width, "height": height})
 
-    # 2. Temukan titik awal model dan clip
-    ckpt_id, _ = _first_node(wf, "CheckpointLoaderSimple")
-    if not ckpt_id: raise RuntimeError("CheckpointLoaderSimple not found")
+    # 2. Temukan titik awal model, dan update jika ada dari params
+    ckpt_id, ckpt_node = _first_node(wf, "CheckpointLoaderSimple")
+    if not ckpt_node: raise RuntimeError("CheckpointLoaderSimple not found")
+
+    # UPDATE: Ganti model checkpoint jika diminta oleh user
+    if params.get("model_name"):
+        ckpt_node["inputs"]["ckpt_name"] = params["model_name"]
     
     # 3. Sisipkan LoRA
     loras = params.get("loras", []) or []

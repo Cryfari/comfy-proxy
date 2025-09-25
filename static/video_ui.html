@@ -358,6 +358,14 @@
                   </div>
                 </div>
 
+                <!-- NEW: Model Selector -->
+                <div>
+                  <label class="muted">Model</label>
+                  <select id="modelSelector" class="input">
+                    <option value="" disabled selected>Loading models...</option>
+                  </select>
+                </div>
+
                 <!-- ===== Upscaler (Baru ditambahkan) ===== -->
                 <div>
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border-top: 1px solid var(--line); padding-top: 12px;">
@@ -395,315 +403,351 @@
       range.addEventListener('input', sync(range, number));
       number.addEventListener('input', sync(number, range));
     }
-    bindRangeNumber(document.getElementById('widthRange'), document.getElementById('widthNum'));
-    bindRangeNumber(document.getElementById('heightRange'), document.getElementById('heightNum'));
-    bindRangeNumber(document.getElementById('stepsRange'), document.getElementById('stepsNum'));
-    bindRangeNumber(document.getElementById('cfgRange'), document.getElementById('cfgNum'));
-    bindRangeNumber(document.getElementById('scaleFactorRange'), document.getElementById('scaleFactorNum'));
 
-    // ===== Upscaler UI Logic =====
-    const enableUpscaler = document.getElementById('enableUpscaler');
-    const scaleFactorControls = document.getElementById('scaleFactorControls');
-    enableUpscaler.addEventListener('change', () => {
-      scaleFactorControls.style.display = enableUpscaler.checked ? 'block' : 'none';
-    });
-    
-    // ===== File Input & Preview Logic =====
-    const fileInput = document.getElementById('fileInput');
-    const fileInputLabel = document.getElementById('fileInputLabel').querySelector('span');
-    const originalLabelText = fileInputLabel.textContent;
-    const refContainer = document.getElementById('referencePreviewContainer');
-    const refImg = document.getElementById('referencePreviewImage');
+    document.addEventListener('DOMContentLoaded', () => {
+        const modelSelector = document.getElementById('modelSelector');
 
-    function clearReferenceImage() {
-        uploadedImageFilename = null;
-        fileInput.value = '';
-        refContainer.style.display = 'none';
-        refImg.src = '';
-        fileInputLabel.textContent = originalLabelText;
-    }
+        bindRangeNumber(document.getElementById('widthRange'), document.getElementById('widthNum'));
+        bindRangeNumber(document.getElementById('heightRange'), document.getElementById('heightNum'));
+        bindRangeNumber(document.getElementById('stepsRange'), document.getElementById('stepsNum'));
+        bindRangeNumber(document.getElementById('cfgRange'), document.getElementById('cfgNum'));
+        bindRangeNumber(document.getElementById('scaleFactorRange'), document.getElementById('scaleFactorNum'));
 
-    document.getElementById('removeReferenceBtn').addEventListener('click', clearReferenceImage);
-    
-    fileInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-            clearReferenceImage();
-            return;
+        // ===== Upscaler UI Logic =====
+        const enableUpscaler = document.getElementById('enableUpscaler');
+        const scaleFactorControls = document.getElementById('scaleFactorControls');
+        enableUpscaler.addEventListener('change', () => {
+        scaleFactorControls.style.display = enableUpscaler.checked ? 'block' : 'none';
+        });
+        
+        // ===== File Input & Preview Logic =====
+        const fileInput = document.getElementById('fileInput');
+        const fileInputLabel = document.getElementById('fileInputLabel').querySelector('span');
+        const originalLabelText = fileInputLabel.textContent;
+        const refContainer = document.getElementById('referencePreviewContainer');
+        const refImg = document.getElementById('referencePreviewImage');
+
+        function clearReferenceImage() {
+            uploadedImageFilename = null;
+            fileInput.value = '';
+            refContainer.style.display = 'none';
+            refImg.src = '';
+            fileInputLabel.textContent = originalLabelText;
         }
 
-        const formData = new FormData();
-        formData.append('file', file);
-        fileInputLabel.textContent = 'Uploading...';
-
-        try {
-            const response = await fetch(currentOrigin+'/upload/image', {
-                method: 'POST',
-                body: formData,
-            });
-            if (!response.ok) throw new Error('Upload failed');
-            const result = await response.json();
-            
-            uploadedImageFilename = result.name;
-            refImg.src = URL.createObjectURL(file);
-            refContainer.style.display = 'block';
-            fileInputLabel.textContent = file.name;
-
-        } catch (error) {
-            console.error('Upload error:', error);
-            alert('Gagal mengunggah gambar referensi.');
-            clearReferenceImage();
-        }
-    });
-
-
-    // Seed random
-    document.getElementById('btnRandSeed').addEventListener('click', () => {
-      document.getElementById('seedNum').value = Math.floor(Math.random()*2147483647);
-    });
-
-    // Reset default
-    document.getElementById('btnReset').addEventListener('click', () => {
-        document.getElementById('prompt-pos').value = '';
-        document.getElementById('prompt-neg').value = '';
-        document.getElementById('widthRange').value = document.getElementById('widthNum').value = 1024;
-        document.getElementById('heightRange').value = document.getElementById('heightNum').value = 1024;
-        document.getElementById('stepsRange').value = document.getElementById('stepsNum').value = 22;
-        document.getElementById('cfgRange').value = document.getElementById('cfgNum').value = 7;
-        document.getElementById('fpsNum').value = 60;
-        document.getElementById('secondsNum').value = 120;
-        document.getElementById('seedNum').value = 1;
-        enableUpscaler.checked = false;
-        scaleFactorControls.style.display = 'none';
-        document.getElementById('scaleFactorRange').value = document.getElementById('scaleFactorNum').value = 2;
-        clearReferenceImage();
-        // Reset preview
-        document.getElementById('video-preview').style.display = 'none';
-        document.getElementById('video-placeholder').style.display = 'flex';
-        document.getElementById('btnDownload').disabled = true;
-    });
-
-    // ===== Data Collection =====
-    function collectUpscale(){
-      const isEnabled = document.getElementById('enableUpscaler').checked;
-      const scale = parseFloat(document.getElementById('scaleFactorNum').value || '2');
-      return {
-          enabled: isEnabled,
-          factor: scale
-      };
-    }
-
-    // ===== Polling and Result Handling =====
-    const btnGenerate = document.getElementById('btnGenerate');
-    const btnInterrupt = document.getElementById('btnInterrupt');
-    const videoPlaceholder = document.getElementById('video-placeholder');
-    const videoPreview = document.getElementById('video-preview');
-    const btnDownload = document.getElementById('btnDownload');
-    
-    function resetGenerateButton() {
-        if(activePollingInterval) {
-            clearInterval(activePollingInterval);
-            activePollingInterval = null;
-        }
-        btnGenerate.disabled = false;
-        btnGenerate.textContent = 'Generate video';
-        btnInterrupt.style.display = 'none';
-    }
-
-    btnInterrupt.addEventListener('click', async () => {
-        try {
-            const response = await fetch(currentOrigin+'/interupt', { method: 'POST' });
-            if (response.ok) {
-                console.log('Interrupt request sent.');
-                alert('Proses dihentikan.');
-                resetGenerateButton();
-                videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Proses Dibatalkan</div>`;
-            } else {
-                alert('Gagal mengirim perintah interupsi.');
-            }
-        } catch (error) {
-            console.error('Interrupt request failed:', error);
-            alert('Gagal menghubungi server untuk interupsi.');
-        }
-    });
-
-    function pollForResult(promptId) {
-        btnGenerate.textContent = 'Processing...';
-        btnInterrupt.style.display = 'inline-flex';
-        videoPreview.style.display = 'none';
-        videoPlaceholder.style.display = 'flex';
-        videoPlaceholder.innerHTML = `<div class="muted" style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
-        btnDownload.disabled = true;
-
-        const maxAttempts = 60*60*2; // 2 hours timeout
-        let attempt = 0;
-
-        activePollingInterval = setInterval(async () => {
-            if (attempt++ >= maxAttempts) {
-                clearInterval(activePollingInterval);
-                activePollingInterval = null;
-                alert('Generation timed out.');
-                resetGenerateButton();
-                videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Timeout</div>`;
+        document.getElementById('removeReferenceBtn').addEventListener('click', clearReferenceImage);
+        
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                clearReferenceImage();
                 return;
             }
 
+            const formData = new FormData();
+            formData.append('file', file);
+            fileInputLabel.textContent = 'Uploading...';
+
             try {
-                const response = await fetch(currentOrigin+`/history/${promptId}`);
-                const history = await response.json();
+                const response = await fetch(currentOrigin+'/upload/image', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!response.ok) throw new Error('Upload failed');
+                const result = await response.json();
+                
+                uploadedImageFilename = result.name;
+                refImg.src = URL.createObjectURL(file);
+                refContainer.style.display = 'block';
+                fileInputLabel.textContent = file.name;
 
-                if (Object.keys(history).length > 0) {
-                    clearInterval(activePollingInterval);
-                    activePollingInterval = null;
-                    const promptData = history[promptId];
-                    let outputVideo = null;
-                    if (promptData && promptData.outputs) {
-                         for (const nodeId in promptData.outputs) {
-                            const nodeOutput = promptData.outputs[nodeId];
-                            if (nodeOutput.images && nodeOutput.images.length > 0) {
-                                outputVideo = nodeOutput.images[0];
-                                break;
-                            }
-                        }
-                    }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Gagal mengunggah gambar referensi.');
+                clearReferenceImage();
+            }
+        });
 
-                    if (outputVideo && outputVideo.filename) {
-                        const { filename, subfolder } = outputVideo;
-                        const videoUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || 'video')}`;
-                        
-                        videoPreview.src = videoUrl;
-                        videoPreview.style.display = 'block';
-                        videoPlaceholder.style.display = 'none';
 
-                        btnDownload.disabled = false;
-                        btnDownload.onclick = async () => {
-                          try {
-                            const res = await fetch(videoUrl, { mode: 'cors' }); 
-                            if (!res.ok) throw new Error('Gagal mengambil file');
-                            const blob = await res.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = blobUrl;
-                            a.download = filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            URL.revokeObjectURL(blobUrl);
-                          } catch (e) {
-                            alert('Download gagal: ' + e.message);
-                          }
-                        };
-                    } else {
-                        alert('Generation finished, but no video output was found.');
-                    }
+        // Seed random
+        document.getElementById('btnRandSeed').addEventListener('click', () => {
+        document.getElementById('seedNum').value = Math.floor(Math.random()*2147483647);
+        });
+
+        // Reset default
+        document.getElementById('btnReset').addEventListener('click', () => {
+            document.getElementById('prompt-pos').value = '';
+            document.getElementById('prompt-neg').value = '';
+            document.getElementById('widthRange').value = document.getElementById('widthNum').value = 1024;
+            document.getElementById('heightRange').value = document.getElementById('heightNum').value = 1024;
+            document.getElementById('stepsRange').value = document.getElementById('stepsNum').value = 22;
+            document.getElementById('cfgRange').value = document.getElementById('cfgNum').value = 7;
+            document.getElementById('fpsNum').value = 60;
+            document.getElementById('secondsNum').value = 120;
+            document.getElementById('seedNum').value = 1;
+            enableUpscaler.checked = false;
+            scaleFactorControls.style.display = 'none';
+            document.getElementById('scaleFactorRange').value = document.getElementById('scaleFactorNum').value = 2;
+            clearReferenceImage();
+            // Reset preview
+            document.getElementById('video-preview').style.display = 'none';
+            document.getElementById('video-placeholder').style.display = 'flex';
+            document.getElementById('btnDownload').disabled = true;
+        });
+
+        // ===== Data Collection =====
+        function collectUpscale(){
+        const isEnabled = document.getElementById('enableUpscaler').checked;
+        const scale = parseFloat(document.getElementById('scaleFactorNum').value || '2');
+        return {
+            enabled: isEnabled,
+            factor: scale
+        };
+        }
+
+        // ===== Polling and Result Handling =====
+        const btnGenerate = document.getElementById('btnGenerate');
+        const btnInterrupt = document.getElementById('btnInterrupt');
+        const videoPlaceholder = document.getElementById('video-placeholder');
+        const videoPreview = document.getElementById('video-preview');
+        const btnDownload = document.getElementById('btnDownload');
+        
+        function resetGenerateButton() {
+            if(activePollingInterval) {
+                clearInterval(activePollingInterval);
+                activePollingInterval = null;
+            }
+            btnGenerate.disabled = false;
+            btnGenerate.textContent = 'Generate video';
+            btnInterrupt.style.display = 'none';
+        }
+
+        btnInterrupt.addEventListener('click', async () => {
+            try {
+                const response = await fetch(currentOrigin+'/interupt', { method: 'POST' });
+                if (response.ok) {
+                    console.log('Interrupt request sent.');
+                    alert('Proses dihentikan.');
                     resetGenerateButton();
+                    videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Proses Dibatalkan</div>`;
+                } else {
+                    alert('Gagal mengirim perintah interupsi.');
                 }
             } catch (error) {
-                console.error('Polling error:', error);
+                console.error('Interrupt request failed:', error);
+                alert('Gagal menghubungi server untuk interupsi.');
             }
-        }, 1000);
-    }
-    
-    // ===== Tombol Generate =====
-    btnGenerate.addEventListener('click', async () => {
-        btnGenerate.disabled = true;
-        btnGenerate.textContent = 'Sending request...';
+        });
 
-        try {
-            const commonParams = {
-                prompt: document.getElementById('prompt-pos').value,
-                negative: document.getElementById('prompt-neg').value,
-                width: +document.getElementById('widthNum').value,
-                height: +document.getElementById('heightNum').value,
-                fps: +document.getElementById('fpsNum').value,
-                seconds: +document.getElementById('secondsNum').value,
-                steps: +document.getElementById('stepsNum').value,
-                cfg: +document.getElementById('cfgNum').value,
-                seed: +document.getElementById('seedNum').value,
-                sampler: "uni_pc",
-                scheduler: "simple",
-                upscale: collectUpscale()
-            };
+        function pollForResult(promptId) {
+            btnGenerate.textContent = 'Processing...';
+            btnInterrupt.style.display = 'inline-flex';
+            videoPreview.style.display = 'none';
+            videoPlaceholder.style.display = 'flex';
+            videoPlaceholder.innerHTML = `<div class="muted" style="font-size: 12px; word-break: break-all;">Processing ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
+            btnDownload.disabled = true;
 
-            let finalParams;
-            if (uploadedImageFilename) {
-                 finalParams = {
-                    ...commonParams,
-                    model: "wan2.1_i2v_720p_14B_fp16.safetensors",
-                    denoise: 1.0,
-                    i2v: {
-                        enabled: true,
-                        image_ref: uploadedImageFilename
+            const maxAttempts = 60*60*2; // 2 hours timeout
+            let attempt = 0;
+
+            activePollingInterval = setInterval(async () => {
+                if (attempt++ >= maxAttempts) {
+                    clearInterval(activePollingInterval);
+                    activePollingInterval = null;
+                    alert('Generation timed out.');
+                    resetGenerateButton();
+                    videoPlaceholder.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><div class="muted">Timeout</div>`;
+                    return;
+                }
+
+                try {
+                    const response = await fetch(currentOrigin+`/history/${promptId}`);
+                    const history = await response.json();
+
+                    if (Object.keys(history).length > 0) {
+                        clearInterval(activePollingInterval);
+                        activePollingInterval = null;
+                        const promptData = history[promptId];
+                        let outputVideo = null;
+                        if (promptData && promptData.outputs) {
+                            for (const nodeId in promptData.outputs) {
+                                const nodeOutput = promptData.outputs[nodeId];
+                                if (nodeOutput.images && nodeOutput.images.length > 0) {
+                                    outputVideo = nodeOutput.images[0];
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (outputVideo && outputVideo.filename) {
+                            const { filename, subfolder } = outputVideo;
+                            const videoUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || 'video')}`;
+                            
+                            videoPreview.src = videoUrl;
+                            videoPreview.style.display = 'block';
+                            videoPlaceholder.style.display = 'none';
+
+                            btnDownload.disabled = false;
+                            btnDownload.onclick = async () => {
+                            try {
+                                const res = await fetch(videoUrl, { mode: 'cors' }); 
+                                if (!res.ok) throw new Error('Gagal mengambil file');
+                                const blob = await res.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = blobUrl;
+                                a.download = filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                                URL.revokeObjectURL(blobUrl);
+                            } catch (e) {
+                                alert('Download gagal: ' + e.message);
+                            }
+                            };
+                        } else {
+                            alert('Generation finished, but no video output was found.');
+                        }
+                        resetGenerateButton();
                     }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 1000);
+        }
+        
+        // ===== Tombol Generate =====
+        btnGenerate.addEventListener('click', async () => {
+            btnGenerate.disabled = true;
+            btnGenerate.textContent = 'Sending request...';
+
+            try {
+                const selectedModel = modelSelector.value;
+                if (!selectedModel) {
+                    alert('Silakan pilih model terlebih dahulu.');
+                    resetGenerateButton();
+                    return;
+                }
+
+                const commonParams = {
+                    prompt: document.getElementById('prompt-pos').value,
+                    negative: document.getElementById('prompt-neg').value,
+                    width: +document.getElementById('widthNum').value,
+                    height: +document.getElementById('heightNum').value,
+                    fps: +document.getElementById('fpsNum').value,
+                    seconds: +document.getElementById('secondsNum').value,
+                    steps: +document.getElementById('stepsNum').value,
+                    cfg: +document.getElementById('cfgNum').value,
+                    seed: +document.getElementById('seedNum').value,
+                    sampler: "uni_pc",
+                    scheduler: "simple",
+                    upscale: collectUpscale(),
+                    model: selectedModel
                 };
-            } else {
-                finalParams = {
-                    ...commonParams,
-                    denoise: 1.0
+
+                let finalParams;
+                if (uploadedImageFilename) {
+                    finalParams = {
+                        ...commonParams,
+                        denoise: 1.0,
+                        i2v: {
+                            enabled: true,
+                            image_ref: uploadedImageFilename
+                        }
+                    };
+                } else {
+                    finalParams = {
+                        ...commonParams,
+                        denoise: 1.0
+                    };
+                }
+
+                const body = {
+                    preset: "t2v", // Preset is t2v for both, logic inside params changes
+                    params: finalParams
                 };
-            }
 
-            const body = {
-                preset: "t2v", // Preset is t2v for both, logic inside params changes
-                params: finalParams
-            };
+                console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
 
-            console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
+                const response = await fetch(currentOrigin+'/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
 
-            const response = await fetch(currentOrigin+'/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const result = await response.json();
+                if (response.ok && result.prompt_id) {
+                    pollForResult(result.prompt_id);
+                } else {
+                    const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
+                    alert(`Error: ${errorMsg}`);
+                    resetGenerateButton();
+                }
 
-            if (response.ok && result.prompt_id) {
-                pollForResult(result.prompt_id);
-            } else {
-                const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
-                alert(`Error: ${errorMsg}`);
+            } catch (error) {
+                console.error('Request gagal:', error);
+                alert('Gagal menghubungi server. Pastikan server berjalan di localhost:8000.');
                 resetGenerateButton();
             }
+        });
 
-        } catch (error) {
-            console.error('Request gagal:', error);
-            alert('Gagal menghubungi server. Pastikan server berjalan di localhost:8000.');
-            resetGenerateButton();
+        // ===== Dark Mode Toggle =====
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
+        const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+        function setTheme(theme) {
+            document.body.dataset.theme = theme;
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.innerHTML = sunIcon;
+            } else {
+                themeIcon.innerHTML = moonIcon;
+            }
         }
-    });
 
-    // ===== Dark Mode Toggle =====
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
-    const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.body.dataset.theme || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        });
 
-    function setTheme(theme) {
-        document.body.dataset.theme = theme;
-        localStorage.setItem('theme', theme);
-        if (theme === 'dark') {
-            themeIcon.innerHTML = sunIcon;
+        // Load saved theme from localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (prefersDark) {
+            setTheme('dark');
         } else {
-            themeIcon.innerHTML = moonIcon;
+            setTheme('light');
         }
-    }
 
-    themeToggleBtn.addEventListener('click', () => {
-        const currentTheme = document.body.dataset.theme || 'light';
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        setTheme(newTheme);
+        async function loadDiffusionModels() {
+            try {
+                const response = await fetch(currentOrigin + '/models/diffusion_models');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const modelNames = await response.json();
+                
+                modelSelector.innerHTML = '<option value="" disabled>Pilih model...</option>';
+                
+                modelNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    if (name.toLowerCase().includes('wan2.1_t2v')) {
+                        option.selected = true;
+                    }
+                    modelSelector.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Gagal memuat diffusion models:", error);
+                modelSelector.innerHTML = '<option value="" disabled selected>Gagal memuat model</option>';
+            }
+        }
+        loadDiffusionModels();
     });
-
-    // Load saved theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else if (prefersDark) {
-        setTheme('dark');
-    } else {
-        setTheme('light');
-    }
 </script>
 </body>
 </html>

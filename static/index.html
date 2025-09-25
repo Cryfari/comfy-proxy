@@ -737,6 +737,14 @@
                   </div>
                 </div>
 
+                <!-- NEW: Model Selector -->
+                <div>
+                  <label class="muted">Model</label>
+                  <select id="modelSelector" class="input">
+                    <option value="" disabled selected>Loading models...</option>
+                  </select>
+                </div>
+
                 <div>
                   <label class="muted">Sampler</label>
                   <select id="sampler">
@@ -997,515 +1005,551 @@
     let activePollingInterval = null; // Variabel global untuk interval polling
     const currentOrigin = window.location.origin;
 
-    // ===== Helper: bind range <-> number =====
-    function bindRangeNumber(range, number) {
-      if (!range || !number) return;
-      const sync = (src, dst) => () => { dst.value = src.value; };
-      range.addEventListener('input', sync(range, number));
-      number.addEventListener('input', sync(number, range));
-    }
-    bindRangeNumber(document.getElementById('widthRange'), document.getElementById('widthNum'));
-    bindRangeNumber(document.getElementById('heightRange'), document.getElementById('heightNum'));
-    bindRangeNumber(document.getElementById('stepsRange'), document.getElementById('stepsNum'));
-    bindRangeNumber(document.getElementById('cfgRange'), document.getElementById('cfgNum'));
-    bindRangeNumber(document.getElementById('scaleFactorRange'), document.getElementById('scaleFactorNum'));
+    document.addEventListener('DOMContentLoaded', () => {
+        // ===== Helper: bind range <-> number =====
+        function bindRangeNumber(range, number) {
+        if (!range || !number) return;
+        const sync = (src, dst) => () => { dst.value = src.value; };
+        range.addEventListener('input', sync(range, number));
+        number.addEventListener('input', sync(number, range));
+        }
+        bindRangeNumber(document.getElementById('widthRange'), document.getElementById('widthNum'));
+        bindRangeNumber(document.getElementById('heightRange'), document.getElementById('heightNum'));
+        bindRangeNumber(document.getElementById('stepsRange'), document.getElementById('stepsNum'));
+        bindRangeNumber(document.getElementById('cfgRange'), document.getElementById('cfgNum'));
+        bindRangeNumber(document.getElementById('scaleFactorRange'), document.getElementById('scaleFactorNum'));
 
-    // ===== Upscaler UI Logic =====
-    const enableUpscaler = document.getElementById('enableUpscaler');
-    const scaleFactorControls = document.getElementById('scaleFactorControls');
-    enableUpscaler.addEventListener('change', () => {
-      scaleFactorControls.style.display = enableUpscaler.checked ? 'block' : 'none';
-    });
+        // ===== Upscaler UI Logic =====
+        const enableUpscaler = document.getElementById('enableUpscaler');
+        const scaleFactorControls = document.getElementById('scaleFactorControls');
+        enableUpscaler.addEventListener('change', () => {
+        scaleFactorControls.style.display = enableUpscaler.checked ? 'block' : 'none';
+        });
 
-    // Seed random
-    const seedNum = document.getElementById('seedNum');
-    document.getElementById('btnRandSeed').addEventListener('click', () => {
-      seedNum.value = Math.floor(Math.random() * 2147483647);
-    });
+        // Seed random
+        const seedNum = document.getElementById('seedNum');
+        document.getElementById('btnRandSeed').addEventListener('click', () => {
+        seedNum.value = Math.floor(Math.random() * 2147483647);
+        });
 
-    // Fungsi untuk membersihkan gambar referensi
-    function clearReferenceImage() {
-      uploadedImageB64 = null;
-      document.getElementById('fileInput').value = '';
-      document.getElementById('referencePreviewContainer').style.display = 'none';
-      document.getElementById('referencePreviewImage').src = '#';
-    }
+        // Fungsi untuk membersihkan gambar referensi
+        function clearReferenceImage() {
+        uploadedImageB64 = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('referencePreviewContainer').style.display = 'none';
+        document.getElementById('referencePreviewImage').src = '#';
+        }
 
-    // Reset default
-    document.getElementById('btnReset').addEventListener('click', () => {
-      document.getElementById('widthRange').value = document.getElementById('widthNum').value = 1024;
-      document.getElementById('heightRange').value = document.getElementById('heightNum').value = 1024;
-      document.getElementById('stepsRange').value = document.getElementById('stepsNum').value = 22;
-      document.getElementById('cfgRange').value = document.getElementById('cfgNum').value = 22;
-      seedNum.value = 1;
-      document.getElementById('sampler').value = 'uni_pc';
-      document.getElementById('scheduler').value = 'simple';
-      document.getElementById('prompt').value = '';
+        // Reset default
+        document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('widthRange').value = document.getElementById('widthNum').value = 1024;
+        document.getElementById('heightRange').value = document.getElementById('heightNum').value = 1024;
+        document.getElementById('stepsRange').value = document.getElementById('stepsNum').value = 22;
+        document.getElementById('cfgRange').value = document.getElementById('cfgNum').value = 22;
+        seedNum.value = 1;
+        document.getElementById('sampler').value = 'uni_pc';
+        document.getElementById('scheduler').value = 'simple';
+        document.getElementById('prompt').value = '';
 
-      // Reset LoRA & ControlNet & Upscaler
-      loraList.innerHTML = '';
-      loraNameInput.value = '';
-      loraStrengthInput.value = '0.8';
-      cnList.innerHTML = '';
-      cnPreprocInput.value = 'none';
-      cnResInput.value = '512';
-      enableUpscaler.checked = false;
-      scaleFactorControls.style.display = 'none';
-      document.getElementById('scaleFactorRange').value = document.getElementById('scaleFactorNum').value = 2;
+        // Reset LoRA & ControlNet & Upscaler
+        loraList.innerHTML = '';
+        loraNameInput.value = '';
+        loraStrengthInput.value = '0.8';
+        cnList.innerHTML = '';
+        cnPreprocInput.value = 'none';
+        cnResInput.value = '512';
+        enableUpscaler.checked = false;
+        scaleFactorControls.style.display = 'none';
+        document.getElementById('scaleFactorRange').value = document.getElementById('scaleFactorNum').value = 2;
 
-      // Reset Reference/Faceswap image
-      clearReferenceImage();
-      document.getElementById('preview').style.display = 'none';
-      document.querySelector('.preview-viewport .ph').style.display = 'block';
-      document.getElementById('btnDownload').disabled = true;
-    });
-
-    // Listener untuk tombol hapus gambar referensi
-    document.getElementById('removeReferenceBtn').addEventListener('click', clearReferenceImage);
-
-    // Preview ketika upload & Konversi ke Base64
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', (e) => {
-      const f = e.target.files?.[0];
-      if (!f) {
+        // Reset Reference/Faceswap image
         clearReferenceImage();
-        return;
-      }
-      // Tampilkan preview referensi
-      const url = URL.createObjectURL(f);
-      const refContainer = document.getElementById('referencePreviewContainer');
-      const refImg = document.getElementById('referencePreviewImage');
-
-      refImg.src = url;
-      refContainer.style.display = 'block';
-
-      // Konversi ke Base64 untuk API
-      fileToBase64(f)
-        .then(b64 => {
-          uploadedImageB64 = b64;
-          console.log("Gambar referensi berhasil dikonversi ke Base64.");
-        })
-        .catch(err => {
-          console.error("Gagal mengonversi gambar ke Base64:", err);
-          clearReferenceImage();
+        document.getElementById('preview').style.display = 'none';
+        document.querySelector('.preview-viewport .ph').style.display = 'block';
+        document.getElementById('btnDownload').disabled = true;
         });
-    });
 
-    // ===== LoRA Dynamic =====
-    const loraList = document.getElementById('loraList');
-    const loraRowTpl = document.getElementById('loraRowTpl');
-    const btnAddLora = document.getElementById('btnAddLora');
-    const loraNameInput = document.getElementById('loraNameInput');
-    const loraStrengthInput = document.getElementById('loraStrengthInput');
+        // Listener untuk tombol hapus gambar referensi
+        document.getElementById('removeReferenceBtn').addEventListener('click', clearReferenceImage);
 
-    // Fungsi untuk memuat daftar LoRA dari server
-    async function loadLoras() {
-      try {
-        const response = await fetch(currentOrigin+'/models/loras');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // Preview ketika upload & Konversi ke Base64
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (e) => {
+        const f = e.target.files?.[0];
+        if (!f) {
+            clearReferenceImage();
+            return;
         }
-        const loraNames = await response.json();
+        // Tampilkan preview referensi
+        const url = URL.createObjectURL(f);
+        const refContainer = document.getElementById('referencePreviewContainer');
+        const refImg = document.getElementById('referencePreviewImage');
 
-        // Kosongkan opsi yang ada, sisakan placeholder
-        loraNameInput.innerHTML = '<option value="" disabled selected>Pilih LoRA...</option>';
+        refImg.src = url;
+        refContainer.style.display = 'block';
 
-        // Isi dengan opsi baru dari API
-        loraNames.forEach(name => {
-          const option = document.createElement('option');
-          option.value = name;
-          option.textContent = name;
-          loraNameInput.appendChild(option);
+        // Konversi ke Base64 untuk API
+        fileToBase64(f)
+            .then(b64 => {
+            uploadedImageB64 = b64;
+            console.log("Gambar referensi berhasil dikonversi ke Base64.");
+            })
+            .catch(err => {
+            console.error("Gagal mengonversi gambar ke Base64:", err);
+            clearReferenceImage();
+            });
         });
-        console.log("Daftar LoRA berhasil dimuat.");
-      } catch (error) {
-        console.error("Gagal memuat daftar LoRA:", error);
-        // Beri tahu pengguna di UI jika gagal
-        loraNameInput.innerHTML = '<option value="" disabled selected>Gagal memuat LoRA</option>';
-      }
-    }
 
-    // Panggil fungsi untuk memuat LoRA saat halaman dimuat
-    loadLoras();
+        // ===== LoRA Dynamic =====
+        const loraList = document.getElementById('loraList');
+        const loraRowTpl = document.getElementById('loraRowTpl');
+        const btnAddLora = document.getElementById('btnAddLora');
+        const loraNameInput = document.getElementById('loraNameInput');
+        const loraStrengthInput = document.getElementById('loraStrengthInput');
 
-    function bindLoraRangeNum(rangeEl, numEl) {
-      rangeEl.addEventListener('input', () => { numEl.value = rangeEl.value; });
-      numEl.addEventListener('input', () => {
-        const v = Math.min(1, Math.max(0, parseFloat(numEl.value || 0)));
-        numEl.value = isNaN(v) ? '0.80' : v.toFixed(2);
-        rangeEl.value = isNaN(v) ? 0.8 : v;
-      });
-    }
-
-    function addLoraRow(name = '', strength = 0.8) {
-      const node = loraRowTpl.content.firstElementChild.cloneNode(true);
-      const nameEl = node.querySelector('.lora-name');
-      const rEl = node.querySelector('.lora-strength-range');
-      const nEl = node.querySelector('.lora-strength-num');
-      const rm = node.querySelector('.lora-remove');
-
-      const lastDotIndex = name.lastIndexOf('.');
-      const shortName = lastDotIndex !== -1 ? name.substring(0, lastDotIndex) : name;
-
-      nameEl.value = shortName; // Display shortened name
-      nameEl.dataset.fullName = name; // Store full name in data attribute
-      nameEl.readOnly = true; // Make it non-editable by user
-
-      rEl.value = strength;
-      nEl.value = strength;
-
-      bindLoraRangeNum(rEl, nEl);
-      rm.addEventListener('click', () => node.remove());
-
-      loraList.appendChild(node);
-    }
-
-    btnAddLora.addEventListener('click', () => {
-      const name = (loraNameInput.value || '').trim();
-      const strength = Math.min(1, Math.max(0, parseFloat(loraStrengthInput.value || '0.8')));
-      if (!name) { alert('Pilih nama LoRA dulu.'); return; }
-      addLoraRow(name, isNaN(strength) ? 0.8 : strength);
-      loraNameInput.value = '';
-      loraStrengthInput.value = '0.8';
-    });
-
-    // ===== ControlNet Dynamic =====
-    const cnList = document.getElementById('cnList');
-    const cnRowTpl = document.getElementById('cnRowTpl');
-    const btnAddCn = document.getElementById('btnAddCn');
-    const cnPreprocInput = document.getElementById('cnPreprocInput');
-    const cnResInput = document.getElementById('cnResInput');
-
-    function addCnRow(preproc = 'none', res = 512, file = null) {
-      const node = cnRowTpl.content.firstElementChild.cloneNode(true);
-      const preprocEl = node.querySelector('.cn-preproc');
-      const resEl = node.querySelector('.cn-res');
-      const fileEl = node.querySelector('.cn-image');
-      const rm = node.querySelector('.cn-remove');
-
-      preprocEl.value = preproc;
-      resEl.value = res;
-
-      rm.addEventListener('click', () => node.remove());
-
-      cnList.appendChild(node);
-    }
-
-    btnAddCn.addEventListener('click', () => {
-      const preproc = cnPreprocInput.value;
-      const res = parseInt(cnResInput.value || '512', 10);
-      addCnRow(preproc, isNaN(res) ? 512 : res);
-      cnResInput.value = 512;
-      cnPreprocInput.value = 'none';
-    });
-
-    // ===== Helper: File to Base64 =====
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          // Hapus prefix "data:*/*;base64,"
-          resolve(reader.result.split(',')[1]);
-        };
-        reader.onerror = error => reject(error);
-      });
-    }
-
-    // ===== Data Collection Functions (Updated for API) =====
-    function collectLoras() {
-      const items = [];
-      loraList.querySelectorAll('.lora-row').forEach(row => {
-        const nameInput = row.querySelector('.lora-name');
-        const name = nameInput.dataset.fullName ? nameInput.dataset.fullName.trim() : nameInput.value.trim(); // Read from data-attribute
-        const strength = parseFloat(row.querySelector('.lora-strength-num').value || '0.8');
-        if (name) {
-          items.push({
-            lora_name: name,
-            strength_model: strength,
-            strength_clip: strength // Map strength to both model and clip
-          });
-        }
-      });
-      return items;
-    }
-
-    async function collectControls() {
-      const items = [];
-      const rows = cnList.querySelectorAll('.cn-row');
-      for (const row of rows) {
-        const preproc = row.querySelector('.cn-preproc').value;
-        const res = parseInt(row.querySelector('.cn-res').value || '512', 10);
-        const fileInput = row.querySelector('.cn-image');
-        let imageB64 = "";
-
-        if (fileInput.files && fileInput.files[0]) {
-          try {
-            imageB64 = await fileToBase64(fileInput.files[0]);
-          } catch (error) {
-            console.error("Error converting ControlNet image to Base64:", error);
-            continue; // Lewati item ini jika konversi gambar gagal
-          }
-        }
-
-        items.push({
-          image: imageB64,
-          preprocessor: preproc,
-          resolution: res,
-          strength: 0.8 // Default strength karena tidak ada di UI
-        });
-      }
-      return items;
-    }
-
-    function collectUpscale() {
-      const isEnabled = document.getElementById('enableUpscaler').checked;
-      if (!isEnabled) {
-        return { enabled: false };
-      }
-      const scale = parseFloat(document.getElementById('scaleFactorNum').value || '2');
-      return { enabled: true, scale: scale };
-    }
-
-    function collectFaceswap() {
-      if (uploadedImageB64) {
-        return {
-          enabled: true,
-          source_image_b64: uploadedImageB64,
-          face_boost: {
-            enabled: true, // Default value, karena tidak ada di UI
-            visibility: 1.0, // Default value
-            codeformer_weight: 0.5 // Default value
-          }
-        };
-      }
-      return { enabled: false };
-    }
-
-    // ===== Interrupt Logic =====
-    const btnInterrupt = document.getElementById('btnInterrupt');
-    btnInterrupt.addEventListener('click', async () => {
-      try {
-        const response = await fetch(currentOrigin+'/interrupt', { method: 'POST' });
-        if (response.ok) {
-          console.log('Interrupt request sent.');
-          alert('Proses generasi dihentikan.');
-          resetGenerateButton(); // This will clear the interval and reset the UI
-          // Reset the preview placeholder
-          const previewPlaceholder = document.querySelector('.preview-viewport .ph');
-          previewPlaceholder.innerHTML = `
-              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/>
-                <path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/>
-              </svg>
-              <div>Proses Dibatalkan</div>`;
-          previewPlaceholder.style.display = 'block';
-          document.getElementById('preview').style.display = 'none';
-        } else {
-          alert('Gagal mengirim perintah interupsi.');
-        }
-      } catch (error) {
-        console.error('Interrupt request failed:', error);
-        alert('Gagal menghubungi server untuk interupsi.');
-      }
-    });
-
-
-    // ===== Polling and Result Handling =====
-    function resetGenerateButton() {
-      if (activePollingInterval) {
-        clearInterval(activePollingInterval);
-        activePollingInterval = null;
-      }
-      const btn = document.getElementById('btnGenerate');
-      const btnInterrupt = document.getElementById('btnInterrupt');
-      btn.disabled = false;
-      btn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-      Generate image
-    `;
-      btnInterrupt.style.display = 'none';
-    }
-
-    function pollForResult(promptId) {
-      const btn = document.getElementById('btnGenerate');
-      const btnInterrupt = document.getElementById('btnInterrupt');
-      const previewPlaceholder = document.querySelector('.preview-viewport .ph');
-      const previewImg = document.getElementById('preview');
-
-      btn.innerHTML = 'Generating...';
-      btnInterrupt.style.display = 'inline-flex';
-      previewPlaceholder.innerHTML = `<div style="word-break: break-all;">Processing prompt ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
-      previewPlaceholder.style.display = 'block';
-      previewImg.style.display = 'none';
-
-      const maxAttempts = 120;
-      let attempt = 0;
-
-      if (activePollingInterval) {
-        clearInterval(activePollingInterval);
-      }
-
-      activePollingInterval = setInterval(async () => {
-        if (attempt++ >= maxAttempts) {
-          clearInterval(activePollingInterval);
-          activePollingInterval = null;
-          alert('Generation timed out.');
-          resetGenerateButton();
-          previewPlaceholder.innerHTML = `<div>Timeout</div>`;
-          return;
-        }
-
+        // Fungsi untuk memuat daftar LoRA dari server
+        async function loadLoras() {
         try {
-          const response = await fetch(currentOrigin+`/history/${promptId}`);
-          if (!response.ok) throw new Error('Network response was not ok');
-          const history = await response.json();
+            const response = await fetch(currentOrigin+'/models/loras');
+            if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const loraNames = await response.json();
 
-          if (Object.keys(history).length > 0) {
+            // Kosongkan opsi yang ada, sisakan placeholder
+            loraNameInput.innerHTML = '<option value="" disabled selected>Pilih LoRA...</option>';
+
+            // Isi dengan opsi baru dari API
+            loraNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            loraNameInput.appendChild(option);
+            });
+            console.log("Daftar LoRA berhasil dimuat.");
+        } catch (error) {
+            console.error("Gagal memuat daftar LoRA:", error);
+            // Beri tahu pengguna di UI jika gagal
+            loraNameInput.innerHTML = '<option value="" disabled selected>Gagal memuat LoRA</option>';
+        }
+        }
+
+        function bindLoraRangeNum(rangeEl, numEl) {
+        rangeEl.addEventListener('input', () => { numEl.value = rangeEl.value; });
+        numEl.addEventListener('input', () => {
+            const v = Math.min(1, Math.max(0, parseFloat(numEl.value || 0)));
+            numEl.value = isNaN(v) ? '0.80' : v.toFixed(2);
+            rangeEl.value = isNaN(v) ? 0.8 : v;
+        });
+        }
+
+        function addLoraRow(name = '', strength = 0.8) {
+        const node = loraRowTpl.content.firstElementChild.cloneNode(true);
+        const nameEl = node.querySelector('.lora-name');
+        const rEl = node.querySelector('.lora-strength-range');
+        const nEl = node.querySelector('.lora-strength-num');
+        const rm = node.querySelector('.lora-remove');
+
+        const lastDotIndex = name.lastIndexOf('.');
+        const shortName = lastDotIndex !== -1 ? name.substring(0, lastDotIndex) : name;
+
+        nameEl.value = shortName; // Display shortened name
+        nameEl.dataset.fullName = name; // Store full name in data attribute
+        nameEl.readOnly = true; // Make it non-editable by user
+
+        rEl.value = strength;
+        nEl.value = strength;
+
+        bindLoraRangeNum(rEl, nEl);
+        rm.addEventListener('click', () => node.remove());
+
+        loraList.appendChild(node);
+        }
+
+        btnAddLora.addEventListener('click', () => {
+        const name = (loraNameInput.value || '').trim();
+        const strength = Math.min(1, Math.max(0, parseFloat(loraStrengthInput.value || '0.8')));
+        if (!name) { alert('Pilih nama LoRA dulu.'); return; }
+        addLoraRow(name, isNaN(strength) ? 0.8 : strength);
+        loraNameInput.value = '';
+        loraStrengthInput.value = '0.8';
+        });
+
+        // ===== ControlNet Dynamic =====
+        const cnList = document.getElementById('cnList');
+        const cnRowTpl = document.getElementById('cnRowTpl');
+        const btnAddCn = document.getElementById('btnAddCn');
+        const cnPreprocInput = document.getElementById('cnPreprocInput');
+        const cnResInput = document.getElementById('cnResInput');
+
+        function addCnRow(preproc = 'none', res = 512, file = null) {
+        const node = cnRowTpl.content.firstElementChild.cloneNode(true);
+        const preprocEl = node.querySelector('.cn-preproc');
+        const resEl = node.querySelector('.cn-res');
+        const fileEl = node.querySelector('.cn-image');
+        const rm = node.querySelector('.cn-remove');
+
+        preprocEl.value = preproc;
+        resEl.value = res;
+
+        rm.addEventListener('click', () => node.remove());
+
+        cnList.appendChild(node);
+        }
+
+        btnAddCn.addEventListener('click', () => {
+        const preproc = cnPreprocInput.value;
+        const res = parseInt(cnResInput.value || '512', 10);
+        addCnRow(preproc, isNaN(res) ? 512 : res);
+        cnResInput.value = 512;
+        cnPreprocInput.value = 'none';
+        });
+
+        // ===== Helper: File to Base64 =====
+        function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+            // Hapus prefix "data:*/*;base64,"
+            resolve(reader.result.split(',')[1]);
+            };
+            reader.onerror = error => reject(error);
+        });
+        }
+
+        // ===== Data Collection Functions (Updated for API) =====
+        function collectLoras() {
+        const items = [];
+        loraList.querySelectorAll('.lora-row').forEach(row => {
+            const nameInput = row.querySelector('.lora-name');
+            const name = nameInput.dataset.fullName ? nameInput.dataset.fullName.trim() : nameInput.value.trim(); // Read from data-attribute
+            const strength = parseFloat(row.querySelector('.lora-strength-num').value || '0.8');
+            if (name) {
+            items.push({
+                lora_name: name,
+                strength_model: strength,
+                strength_clip: strength // Map strength to both model and clip
+            });
+            }
+        });
+        return items;
+        }
+
+        async function collectControls() {
+        const items = [];
+        const rows = cnList.querySelectorAll('.cn-row');
+        for (const row of rows) {
+            const preproc = row.querySelector('.cn-preproc').value;
+            const res = parseInt(row.querySelector('.cn-res').value || '512', 10);
+            const fileInput = row.querySelector('.cn-image');
+            let imageB64 = "";
+
+            if (fileInput.files && fileInput.files[0]) {
+            try {
+                imageB64 = await fileToBase64(fileInput.files[0]);
+            } catch (error) {
+                console.error("Error converting ControlNet image to Base64:", error);
+                continue; // Lewati item ini jika konversi gambar gagal
+            }
+            }
+
+            items.push({
+            image: imageB64,
+            preprocessor: preproc,
+            resolution: res,
+            strength: 0.8 // Default strength karena tidak ada di UI
+            });
+        }
+        return items;
+        }
+
+        function collectUpscale() {
+        const isEnabled = document.getElementById('enableUpscaler').checked;
+        if (!isEnabled) {
+            return { enabled: false };
+        }
+        const scale = parseFloat(document.getElementById('scaleFactorNum').value || '2');
+        return { enabled: true, scale: scale };
+        }
+
+        function collectFaceswap() {
+        if (uploadedImageB64) {
+            return {
+            enabled: true,
+            source_image_b64: uploadedImageB64,
+            face_boost: {
+                enabled: true, // Default value, karena tidak ada di UI
+                visibility: 1.0, // Default value
+                codeformer_weight: 0.5 // Default value
+            }
+            };
+        }
+        return { enabled: false };
+        }
+
+        // ===== Interrupt Logic =====
+        const btnInterrupt = document.getElementById('btnInterrupt');
+        btnInterrupt.addEventListener('click', async () => {
+        try {
+            const response = await fetch(currentOrigin+'/interrupt', { method: 'POST' });
+            if (response.ok) {
+            console.log('Interrupt request sent.');
+            alert('Proses generasi dihentikan.');
+            resetGenerateButton(); // This will clear the interval and reset the UI
+            // Reset the preview placeholder
+            const previewPlaceholder = document.querySelector('.preview-viewport .ph');
+            previewPlaceholder.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" opacity=".25"/>
+                    <path d="m10 12 2.5 3 3.5-4 4 5H4l4-5 2 1z"/>
+                </svg>
+                <div>Proses Dibatalkan</div>`;
+            previewPlaceholder.style.display = 'block';
+            document.getElementById('preview').style.display = 'none';
+            } else {
+            alert('Gagal mengirim perintah interupsi.');
+            }
+        } catch (error) {
+            console.error('Interrupt request failed:', error);
+            alert('Gagal menghubungi server untuk interupsi.');
+        }
+        });
+
+
+        // ===== Polling and Result Handling =====
+        function resetGenerateButton() {
+        if (activePollingInterval) {
             clearInterval(activePollingInterval);
             activePollingInterval = null;
-            console.log("Generation complete:", history);
-
-            const promptData = history[promptId];
-            let outputImage = null;
-            if (promptData && promptData.outputs) {
-              for (const nodeId in promptData.outputs) {
-                const nodeOutput = promptData.outputs[nodeId];
-                if (nodeOutput.images && nodeOutput.images.length > 0) {
-                  outputImage = nodeOutput.images[0];
-                  break;
-                }
-              }
-            }
-
-            if (outputImage && outputImage.filename) {
-              const { filename, subfolder } = outputImage;
-              const imageUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
-
-              previewImg.onload = () => {
-                previewPlaceholder.style.display = 'none';
-                previewImg.style.display = 'block';
-              };
-              previewImg.onerror = () => {
-                alert(`Failed to load image from ${imageUrl}.`);
-              };
-              previewImg.src = imageUrl;
-
-              const btnDownload = document.getElementById('btnDownload');
-              btnDownload.disabled = false;
-              btnDownload.onclick = () => {
-                const a = document.createElement('a');
-                a.href = imageUrl;
-                a.download = filename;
-                a.click();
-              };
-            } else {
-              alert('Generation finished, but no image output was found.');
-            }
-            resetGenerateButton();
-          }
-        } catch (error) {
-          console.error('Polling error:', error);
         }
-      }, 1500); // Check every 1.5 seconds
-    }
+        const btn = document.getElementById('btnGenerate');
+        const btnInterrupt = document.getElementById('btnInterrupt');
+        btn.disabled = false;
+        btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+        Generate image
+        `;
+        btnInterrupt.style.display = 'none';
+        }
 
+        function pollForResult(promptId) {
+        const btn = document.getElementById('btnGenerate');
+        const btnInterrupt = document.getElementById('btnInterrupt');
+        const previewPlaceholder = document.querySelector('.preview-viewport .ph');
+        const previewImg = document.getElementById('preview');
 
-    // ===== Tombol Generate (Tunggal & Terpusat) =====
-    document.getElementById('btnGenerate').addEventListener('click', async () => {
-      const btn = document.getElementById('btnGenerate');
-      btn.disabled = true;
-      btn.innerHTML = 'Sending request...';
+        btn.innerHTML = 'Generating...';
+        btnInterrupt.style.display = 'inline-flex';
+        previewPlaceholder.innerHTML = `<div style="word-break: break-all;">Processing prompt ID: ${promptId}</div><div class="muted">Waiting for result...</div>`;
+        previewPlaceholder.style.display = 'block';
+        previewImg.style.display = 'none';
 
-      try {
-        const loraItems = collectLoras();
-        const controlItems = await collectControls();
-        const upscaleData = collectUpscale();
-        const faceswapData = collectFaceswap();
+        const maxAttempts = 120;
+        let attempt = 0;
 
-        const body = {
-          preset: "t2i",
-          params: {
-            prompt: document.getElementById('prompt').value,
-            seed: +document.getElementById('seedNum').value,
-            steps: +document.getElementById('stepsNum').value,
-            cfg: +document.getElementById('cfgNum').value,
-            sampler: document.getElementById('sampler').value,
-            scheduler: document.getElementById('scheduler').value,
-            denoise: 1.0, // Default value from example
-            width: +document.getElementById('widthNum').value,
-            height: +document.getElementById('heightNum').value,
-            loras: loraItems,
-            controls: controlItems,
-            upscale: upscaleData,
-            faceswap: faceswapData
-          }
-        };
+        if (activePollingInterval) {
+            clearInterval(activePollingInterval);
+        }
 
-        if (body.params.loras.length === 0) delete body.params.loras;
-        if (body.params.controls.length === 0) delete body.params.controls;
+        activePollingInterval = setInterval(async () => {
+            if (attempt++ >= maxAttempts) {
+            clearInterval(activePollingInterval);
+            activePollingInterval = null;
+            alert('Generation timed out.');
+            resetGenerateButton();
+            previewPlaceholder.innerHTML = `<div>Timeout</div>`;
+            return;
+            }
 
-        console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
+            try {
+            const response = await fetch(currentOrigin+`/history/${promptId}`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const history = await response.json();
 
-        const response = await fetch(currentOrigin+'/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+            if (Object.keys(history).length > 0) {
+                clearInterval(activePollingInterval);
+                activePollingInterval = null;
+                console.log("Generation complete:", history);
+
+                const promptData = history[promptId];
+                let outputImage = null;
+                if (promptData && promptData.outputs) {
+                for (const nodeId in promptData.outputs) {
+                    const nodeOutput = promptData.outputs[nodeId];
+                    if (nodeOutput.images && nodeOutput.images.length > 0) {
+                    outputImage = nodeOutput.images[0];
+                    break;
+                    }
+                }
+                }
+
+                if (outputImage && outputImage.filename) {
+                const { filename, subfolder } = outputImage;
+                const imageUrl = currentOrigin+`/image?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}`;
+
+                previewImg.onload = () => {
+                    previewPlaceholder.style.display = 'none';
+                    previewImg.style.display = 'block';
+                };
+                previewImg.onerror = () => {
+                    alert(`Failed to load image from ${imageUrl}.`);
+                };
+                previewImg.src = imageUrl;
+
+                const btnDownload = document.getElementById('btnDownload');
+                btnDownload.disabled = false;
+                btnDownload.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = imageUrl;
+                    a.download = filename;
+                    a.click();
+                };
+                } else {
+                alert('Generation finished, but no image output was found.');
+                }
+                resetGenerateButton();
+            }
+            } catch (error) {
+            console.error('Polling error:', error);
+            }
+        }, 1500); // Check every 1.5 seconds
+        }
+
+        // ===== NEW: Function to load models =====
+        const modelSelector = document.getElementById('modelSelector');
+        async function loadModels() {
+            try {
+                const response = await fetch(currentOrigin + '/models/checkpoints');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const modelNames = await response.json();
+
+                modelSelector.innerHTML = '<option value="" disabled selected>Pilih model...</option>';
+
+                modelNames.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    if (name.toLowerCase().includes('flux1-schnell')) {
+                        option.selected = true;
+                    }
+                    modelSelector.appendChild(option);
+                });
+                console.log("Model checkpoint berhasil dimuat.");
+            } catch (error) {
+                console.error("Gagal memuat model checkpoint:", error);
+                modelSelector.innerHTML = '<option value="" disabled selected>Gagal memuat model</option>';
+            }
+        }
+
+        // ===== Tombol Generate (Tunggal & Terpusat) =====
+        document.getElementById('btnGenerate').addEventListener('click', async () => {
+            const btn = document.getElementById('btnGenerate');
+            btn.disabled = true;
+            btn.innerHTML = 'Sending request...';
+
+            try {
+                const loraItems = collectLoras();
+                const controlItems = await collectControls();
+                const upscaleData = collectUpscale();
+                const faceswapData = collectFaceswap();
+                const selectedModel = modelSelector.value;
+
+                if (!selectedModel) {
+                    alert('Silakan pilih model terlebih dahulu.');
+                    resetGenerateButton();
+                    return;
+                }
+
+                const body = {
+                preset: "t2i",
+                params: {
+                    prompt: document.getElementById('prompt').value,
+                    model_name: selectedModel, // Mengirim model yang dipilih
+                    seed: +document.getElementById('seedNum').value,
+                    steps: +document.getElementById('stepsNum').value,
+                    cfg: +document.getElementById('cfgNum').value,
+                    sampler: document.getElementById('sampler').value,
+                    scheduler: document.getElementById('scheduler').value,
+                    denoise: 1.0, // Default value from example
+                    width: +document.getElementById('widthNum').value,
+                    height: +document.getElementById('heightNum').value,
+                    loras: loraItems,
+                    controls: controlItems,
+                    upscale: upscaleData,
+                    faceswap: faceswapData
+                }
+                };
+
+                if (body.params.loras.length === 0) delete body.params.loras;
+                if (body.params.controls.length === 0) delete body.params.controls;
+
+                console.log("Mengirim payload ke /generate:", JSON.stringify(body, null, 2));
+
+                const response = await fetch(currentOrigin+'/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.prompt_id) {
+                console.log('Request sukses, prompt ID diterima:', result.prompt_id);
+                pollForResult(result.prompt_id); // Start polling for the result
+                } else {
+                console.error('Error:', result);
+                const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
+                alert(`Error: ${errorMsg}`);
+                resetGenerateButton();
+                }
+
+            } catch (error) {
+                console.error('Request gagal:', error);
+                alert('Gagal menghubungi server. Pastikan server berjalan di localhost:8000.');
+                resetGenerateButton();
+            }
         });
 
-        const result = await response.json();
+        // ===== Dark Mode Toggle =====
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
+        const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
 
-        if (response.ok && result.prompt_id) {
-          console.log('Request sukses, prompt ID diterima:', result.prompt_id);
-          pollForResult(result.prompt_id); // Start polling for the result
+        function setTheme(theme) {
+        document.body.dataset.theme = theme;
+        localStorage.setItem('theme', theme);
+        if (theme === 'dark') {
+            themeIcon.innerHTML = sunIcon;
         } else {
-          console.error('Error:', result);
-          const errorMsg = result.detail ? JSON.stringify(result.detail, null, 2) : 'Terjadi kesalahan pada server.';
-          alert(`Error: ${errorMsg}`);
-          resetGenerateButton();
+            themeIcon.innerHTML = moonIcon;
+        }
         }
 
-      } catch (error) {
-        console.error('Request gagal:', error);
-        alert('Gagal menghubungi server. Pastikan server berjalan di localhost:8000.');
-        resetGenerateButton();
-      }
+        themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.body.dataset.theme || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        });
+
+        // Load saved theme from localStorage or system preference
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme) {
+        setTheme(savedTheme);
+        } else if (prefersDark) {
+        setTheme('dark');
+        } else {
+        setTheme('light');
+        }
+
+        // Panggil fungsi untuk memuat data saat halaman dimuat
+        loadModels();
+        loadLoras();
     });
-
-
-
-    // ===== Dark Mode Toggle =====
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const sunIcon = `<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></g>`;
-    const moonIcon = `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
-
-    function setTheme(theme) {
-      document.body.dataset.theme = theme;
-      localStorage.setItem('theme', theme);
-      if (theme === 'dark') {
-        themeIcon.innerHTML = sunIcon;
-      } else {
-        themeIcon.innerHTML = moonIcon;
-      }
-    }
-
-    themeToggleBtn.addEventListener('click', () => {
-      const currentTheme = document.body.dataset.theme || 'light';
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      setTheme(newTheme);
-    });
-
-    // Load saved theme from localStorage or system preference
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else if (prefersDark) {
-      setTheme('dark');
-    } else {
-      setTheme('light');
-    }
   </script>
 </body>
 
